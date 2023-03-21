@@ -47,12 +47,14 @@ impl Exception {
         }
     }
 
-    pub fn file(mut self, file: &str) -> Self {
+    #[inline]
+    pub fn file(&mut self, file: &str) -> &mut Self {
         self.file = file.to_string();
         self
     }
 
-    pub fn name(mut self, name: &str) -> Self {
+    #[inline]
+    pub fn name(&mut self, name: &str) -> &mut Self {
         self.name = match name {
             "" => self::ExceptionNames::UncategorizedException.to_string(),
             __ => name.to_string(),
@@ -60,19 +62,34 @@ impl Exception {
         self
     }
 
-    pub fn position(mut self, line: u32, column: u32) -> Self {
+    #[inline]
+    pub fn position(&mut self, line: u32, column: u32) -> &mut Self {
         self.line = line;
         self.column = column;
         self
     }
 
-    pub fn context(mut self, ctx: &str) -> Self {
+    #[inline]
+    pub fn context(&mut self, ctx: &str) -> &mut Self {
+        self.context = Some(ctx.to_string());
+        self
+    }
+
+    #[inline]
+    pub fn ctx(&mut self, ctx: &str) -> &mut Self {
         self.context = Some(ctx.to_string());
         self
     }
 
     // Keyword `dyn` means: parameter `err` accepts any argument that implements `StdError`.
-    pub fn wrap(mut self, err: impl StdError + 'static) -> Self {
+    #[inline]
+    pub fn src(&mut self, err: impl StdError + 'static) -> &mut Self {
+        self.inner = Some(Box::new(err));
+        self
+    }
+
+    #[inline]
+    pub fn cause(&mut self, err: impl StdError + 'static) -> &mut Self {
         self.inner = Some(Box::new(err));
         self
     }
@@ -108,26 +125,19 @@ impl fmt::Debug for Exception {
     }
 }
 
+impl std::error::Error for Box<Exception> {}
+
 #[macro_export]
 macro_rules! exception {
-    () => {
+    ($($key:ident = $value:expr),*) => {
         {
+            let mut ex = std::boxed::Box::new(crate::Exception::new());
             let loc = std::panic::Location::caller();
-            crate::Exception::new().file(loc.file()).position(loc.line(), loc.column())
-        }
-    };
-    ($inner:expr) => {
-        {
-            let loc = std::panic::Location::caller();
-            crate::Exception::new().file(loc.file()).position(loc.line(), loc.column()).wrap($inner)
-        }
-    };
-    ($inner:expr, $ctx:expr) => {
-        {
-            let loc = std::panic::Location::caller();
-            crate::Exception::new().file(loc.file()).position(loc.line(), loc.column())
-                .wrap($inner)
-                .context($ctx)
+            ex.file(loc.file()).position(loc.line(), loc.column());
+            $(
+                ex.$key($value);
+            )*
+            ex
         }
     };
 }
@@ -140,11 +150,16 @@ mod tests {
         let mut cout = std::io::stdout();
         use crate::exception;
         use std::fs::File;
-        match File::open("!!$%!$>TXT") { // deliberately generate an error.
+        match File::open("!!$%!$>TXT") { // deliberately generate an error for testing.
             Ok(fd) => { },
             Err(e) => { 
-                let ex = exception!(e, "Trying to read file from path \"!!$%!$>TXT\"");
-                writeln!(cout, "{:#?}", &ex).unwrap();
+                let ex = exception!(src=e, ctx="Trying to read file from path \"!!$%!$>TXT\"");
+                let ex2 = exception!(
+                    name="IntendedException",
+                    src=ex,
+                    ctx="Deliberately wrap another Exception"
+                );
+                writeln!(cout, "{:#?}", &ex2).unwrap();
             },
         }
     }

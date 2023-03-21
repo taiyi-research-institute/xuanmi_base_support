@@ -4,7 +4,7 @@ use serde_json;
 use super::exception::*;
 use super::lang::PTRLEN;
 
-/// Convert a string to an utf-8 byte pointer.
+/// Convert a string to a fat-pointer of utf-8 bytes.
 pub fn str_to_u8p(
     text: &str
 ) -> (*const u8, usize) {
@@ -14,17 +14,20 @@ pub fn str_to_u8p(
     return (ptr, len);
 }
 
-/// Convert an utf-8 byte pointer to a string.
+/// Convert a fat-pointer of utf8-bytes to an owned String.
 pub fn u8p_to_str(
     u8p: *const u8,
     len: usize
 ) -> Outcome<String> {
     let bytes: &[u8] = unsafe { std::slice::from_raw_parts(u8p, len) };
-    let text: String = String::from_utf8(bytes.to_vec())?;
+    match String::from_utf8(bytes.to_vec()) {
+        Ok(txt) => { return Ok(txt); },
+        Err(e) => { return }
+    }
     Ok(text)
 }
 
-/// Convert a byte pointer to byte slice.
+/// Convert a fat-pointer of bytes to a byte slice.
 pub fn u8p_to_bslice(u8p: *const u8, len: usize) -> &'static [u8] {
     let bytes: &[u8] = unsafe { std::slice::from_raw_parts(u8p, len) };
     return bytes;
