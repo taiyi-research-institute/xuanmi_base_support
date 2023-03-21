@@ -1,8 +1,8 @@
 use std::{ptr, str, string::String, vec::Vec, result::Result};
 use serde::{Serialize, Deserialize, de::DeserializeOwned};
-use serde_json;
-use super::exception::*;
-use super::lang::PTRLEN;
+use crate::exception::*;
+use crate::EXN;
+use crate::lang::PTRLEN;
 
 /// Convert a string to a fat-pointer of utf-8 bytes.
 pub fn str_to_u8p(
@@ -22,7 +22,10 @@ pub fn u8p_to_str(
     let bytes: &[u8] = unsafe { std::slice::from_raw_parts(u8p, len) };
     match String::from_utf8(bytes.to_vec()) {
         Ok(txt) => { return Ok(txt); },
-        Err(e) => { return }
+        Err(e) => { return exception!(
+            name=EXN::DeserializeException,
+            src=e,
+        )},
     }
     Ok(text)
 }
@@ -49,7 +52,7 @@ pub fn json_to_obj<'a, T>(
     Ok(obj)
 }
 
-/// Convert a serde_json Value to an object.
+/// Convert a `serde_json::Value` to an object.
 pub fn jval_to_obj<T>(
     val: serde_json::value::Value
 ) -> Outcome<T> where T: DeserializeOwned {
