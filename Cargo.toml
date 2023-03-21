@@ -1,0 +1,18 @@
+[package]
+name = "xuanmi_base_support"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies.serde]
+version = "1"
+features = ["derive"]
+
+[dependencies.serde_json]
+version = "1"
+
+[dependencies.reqwest]
+version = "0.11"
+default-features = false
+features = ["rustls", "json", "blocking"]
