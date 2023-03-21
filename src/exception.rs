@@ -41,7 +41,7 @@ impl Exception {
     #[inline]
     pub fn name(&mut self, name: &str) -> &mut Self {
         self.name = match name {
-            "" => self::EXN::UncategorizedException.to_string(),
+            "" => self::EXN::DummyException.to_string(),
             __ => name.to_string(),
         };
         self

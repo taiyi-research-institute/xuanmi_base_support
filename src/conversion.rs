@@ -1,8 +1,6 @@
 use std::{ptr, str, string::String, vec::Vec, result::Result};
 use serde::{Serialize, Deserialize, de::DeserializeOwned};
-use crate::exception::*;
-use crate::EXN;
-use crate::lang::PTRLEN;
+use crate::{exception, TraitStdResultToOutcome, EXN, Outcome, PTRLEN};
 
 /// Convert a string to a fat-pointer of utf-8 bytes.
 pub fn str_to_u8p(
@@ -22,9 +20,8 @@ pub fn u8p_to_str(
     let bytes: &[u8] = unsafe { std::slice::from_raw_parts(u8p, len) };
     match String::from_utf8(bytes.to_vec()) {
         Ok(txt) => { return Ok(txt); },
-        Err(e) => { return Err::exception!(name=EXN::DeserializeException, src=e); },
+        Err(e) => { return Err(exception!(name=EXN::DeserializationException, src=e)); },
     }
-    Ok(text)
 }
 
 /// Convert a fat-pointer of bytes to a byte slice.
@@ -36,8 +33,11 @@ pub fn u8p_to_bslice(u8p: *const u8, len: usize) -> &'static [u8] {
 /// Convert an object to json string.
 pub fn obj_to_json<T>(
     obj: &T
-) -> Result<String, serde_json::Error> where T: Serialize {
-    let json: String = serde_json::to_string(obj);
+) -> Outcome<String> where T: Serialize {
+    let json: String = serde_json::to_string(obj).handle(
+        EXN::SerializationException,
+        &format!("Failed to convert object of type `{}` to String", std::any::type_name::<T>()),
+    )?;
     Ok(json)
 }
 
@@ -53,9 +53,13 @@ pub fn json_to_obj<'a, T>(
 pub fn jval_to_obj<T>(
     val: serde_json::value::Value
 ) -> Outcome<T> where T: DeserializeOwned {
-    let obj: T = serde_json::from_value(val).handle(
-        EXN::DeserializeException,
-        "jval_to"
+    let obj: T = serde_json::from_value(val)
+    .handle(
+        EXN::DeserializationException,
+        &format!(
+            "jval_to_obj failed to convert serde_json::Value to object of type `{}`",
+            std::any::type_name::<T>()
+        ),
     )?;
     Ok(obj)
 }
@@ -71,16 +75,28 @@ pub fn str_from_partof_vecu8(
     *beg = end.clone(); *end += PTRLEN;
     let mut len: usize = 0;
     if let Some(item) = buf.get(*beg..*end) {
-        len = usize::from_be_bytes(item.try_into()?);
+        len = usize::from_be_bytes(item.try_into().handle(
+            EXN::DeserializationException,
+            &format!("Bytes {:?} cannot be decoded as Big-Endian usize", &item),
+        )?);
     } else {
-        panic!("Index {:?} out of bound for bufsize {}", *beg..*end, buf.len());
+        return Err(exception!(
+            name=EXN::IndexOutOfBoundException,
+            ctx=&format!("When reading the length, index {:?} out of bound for bufsize {}", *beg..*end, buf.len())
+        ));
     }
     *beg = *end; *end += len;
     if let Some(item) = buf.get(*beg..*end) {
-        let ret: String = String::from_utf8(item.to_vec())?;
+        let ret: String = String::from_utf8(item.to_vec()).handle(
+            EXN::InvalidUTF8BytesException,
+            "",
+        )?;
         return Ok(ret);
     } else {
-        panic!("Index {:?} out of bound for bufsize {}", *beg..*end, buf.len());
+        return Err(exception!(
+            name=EXN::IndexOutOfBoundException,
+            ctx=&format!("When reading the bytes, index {:?} out of bound for bufsize {}", *beg..*end, buf.len())
+        ));
     }
 }
 
@@ -94,14 +110,20 @@ pub fn bslice_into_partof_vecu8(
     if let Some(item) = buf.get_mut(*beg..*end) {
         item.copy_from_slice(&bslice.len().to_be_bytes());
     } else {
-        panic!("Index {:?} out of bound for bufsize {}", *beg..*end, buf.len());
+        return Err(exception!(
+            name=EXN::IndexOutOfBoundException,
+            ctx=&format!("When writing the length, index {:?} out of bound for bufsize {}", *beg..*end, buf.len())
+        ));
     }
     *beg = end.clone(); *end += bslice.len();
     if let Some(item) = buf.get_mut(*beg..*end) {
         item.copy_from_slice(bslice);
         return Ok(());
     } else {
-        panic!("Index {:?} out of bound for bufsize {}", *beg..*end, buf.len());
+        return Err(exception!(
+            name=EXN::IndexOutOfBoundException,
+            ctx=&format!("When writing the bytes, index {:?} out of bound for bufsize {}", *beg..*end, buf.len())
+        ));
     }
 }
 

@@ -8,6 +8,10 @@ macro_rules! register_exception_names {
 
 register_exception_names!(
     UncategorizedException,
+    DummyException,
     HttpPostException,
-    DeserializationException
+    SerializationException,
+    DeserializationException,
+    IndexOutOfBoundException,
+    InvalidUTF8BytesException
 );
