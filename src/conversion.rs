@@ -22,10 +22,7 @@ pub fn u8p_to_str(
     let bytes: &[u8] = unsafe { std::slice::from_raw_parts(u8p, len) };
     match String::from_utf8(bytes.to_vec()) {
         Ok(txt) => { return Ok(txt); },
-        Err(e) => { return exception!(
-            name=EXN::DeserializeException,
-            src=e,
-        )},
+        Err(e) => { return Err::exception!(name=EXN::DeserializeException, src=e); },
     }
     Ok(text)
 }
@@ -56,7 +53,10 @@ pub fn json_to_obj<'a, T>(
 pub fn jval_to_obj<T>(
     val: serde_json::value::Value
 ) -> Outcome<T> where T: DeserializeOwned {
-    let obj: T = serde_json::from_value(val)?;
+    let obj: T = serde_json::from_value(val).handle(
+        EXN::DeserializeException,
+        "jval_to"
+    )?;
     Ok(obj)
 }
 
@@ -68,7 +68,6 @@ pub fn str_from_partof_vecu8(
     beg: &mut usize,
     end: &mut usize
 ) -> Outcome<String> {
-    let PTRLEN = 
     *beg = end.clone(); *end += PTRLEN;
     let mut len: usize = 0;
     if let Some(item) = buf.get(*beg..*end) {
