@@ -13,5 +13,6 @@ register_exception_names!(
     SerializationException,
     DeserializationException,
     IndexOutOfBoundException,
-    InvalidUTF8BytesException
+    InvalidUTF8BytesException,
+    ArithmeticException
 );

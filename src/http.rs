@@ -87,12 +87,12 @@ mod tests {
 
     #[test]
     /// You can start a sample server using "luban_util/tests/sample_server.py"
-    fn test_http_post() {
-        let req = Request {
-            uname: "luban".to_string(),
-            email: "luban@example.com".to_string(),
-        };
-        let resp: Outcome<Response> = crate::http_post("http://localhost:50000/test", &req); // this is a result type
-        eprintln!("{:#?}", resp);
-    }
+fn test_http_post() {
+    let req = Request {
+        uname: "luban".to_string(),
+        email: "luban@example.com".to_string(),
+    };
+    let resp: Outcome<Response> = crate::http_post("http://localhost:50000/test", &req); // this is a result type
+    eprintln!("{:#?}", resp);
+}
 }

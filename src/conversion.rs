@@ -2,6 +2,43 @@ use std::{ptr, str, string::String, vec::Vec, result::Result};
 use serde::{Serialize, Deserialize, de::DeserializeOwned};
 use crate::{exception, TraitStdResultToOutcome, EXN, Outcome, PTRLEN};
 
+// #region conversion between JSON and object
+/// Convert an object to json string.
+pub fn obj_to_json<T>(
+    obj: &T
+) -> Outcome<String> where T: Serialize {
+    let json: String = serde_json::to_string(obj).handle(
+        EXN::SerializationException,
+        &format!("Failed to convert object of type `{}` to String", std::any::type_name::<T>()),
+    )?;
+    Ok(json)
+}
+
+/// Convert a json string to an object.
+pub fn json_to_obj<'a, T>(
+    text: &'a str
+) -> Result<T, serde_json::Error> where T: Deserialize<'a> {
+    let obj: T = serde_json::from_str(text)?;
+    Ok(obj)
+}
+// #endregion
+
+/// Convert a `serde_json::Value` to an object.
+pub fn jval_to_obj<T>(
+    val: serde_json::value::Value
+) -> Outcome<T> where T: DeserializeOwned {
+    let obj: T = serde_json::from_value(val)
+    .handle(
+        EXN::DeserializationException,
+        &format!(
+            "jval_to_obj failed to convert serde_json::Value to object of type `{}`",
+            std::any::type_name::<T>()
+        ),
+    )?;
+    Ok(obj)
+}
+
+// #region conversion between string and bytes
 /// Convert a string to a fat-pointer of utf-8 bytes.
 pub fn str_to_u8p(
     text: &str
@@ -28,40 +65,6 @@ pub fn u8p_to_str(
 pub fn u8p_to_bslice(u8p: *const u8, len: usize) -> &'static [u8] {
     let bytes: &[u8] = unsafe { std::slice::from_raw_parts(u8p, len) };
     return bytes;
-}
-
-/// Convert an object to json string.
-pub fn obj_to_json<T>(
-    obj: &T
-) -> Outcome<String> where T: Serialize {
-    let json: String = serde_json::to_string(obj).handle(
-        EXN::SerializationException,
-        &format!("Failed to convert object of type `{}` to String", std::any::type_name::<T>()),
-    )?;
-    Ok(json)
-}
-
-/// Convert a json string to an object.
-pub fn json_to_obj<'a, T>(
-    text: &'a str
-) -> Result<T, serde_json::Error> where T: Deserialize<'a> {
-    let obj: T = serde_json::from_str(text)?;
-    Ok(obj)
-}
-
-/// Convert a `serde_json::Value` to an object.
-pub fn jval_to_obj<T>(
-    val: serde_json::value::Value
-) -> Outcome<T> where T: DeserializeOwned {
-    let obj: T = serde_json::from_value(val)
-    .handle(
-        EXN::DeserializationException,
-        &format!(
-            "jval_to_obj failed to convert serde_json::Value to object of type `{}`",
-            std::any::type_name::<T>()
-        ),
-    )?;
-    Ok(obj)
 }
 
 /// Extract a string from a byte vector.
@@ -136,3 +139,4 @@ pub fn str_into_partof_vecu8(
     let bslice = text.as_bytes();
     bslice_into_partof_vecu8(bslice, buf, beg, end)
 }
+// #endregion

@@ -21,15 +21,15 @@ pub struct Exception {
 }
 
 impl Exception {
-    pub fn new() -> Self {
-        Exception {
+    pub fn new() -> Box<Self> {
+        std::boxed::Box::new(Exception {
             name: EXN::UncategorizedException.to_string(),
             file: String::new(),
             line: 0,
             column: 0,
             context: None,
             inner: None,
-        }
+        })
     }
 
     pub fn dummy() -> Box<Self> {
@@ -65,6 +65,23 @@ impl Exception {
         self.line = line;
         self.column = column;
         self
+    }
+
+    #[inline]
+    pub fn line(&mut self, line: u32) -> &mut Self {
+        self.line = line;
+        self
+    }
+
+    #[inline]
+    pub fn column(&mut self, column: u32) -> &mut Self {
+        self.column = column;
+        self
+    }
+
+    #[inline]
+    pub fn col(&mut self, column: u32) -> &mut Self {
+        self.column(column)
     }
 
     #[inline]
@@ -125,7 +142,7 @@ impl<T, E: StdError + 'static> TraitStdResultToOutcome<T, E> for StdResult<T, E>
         match self {
             Ok(v) => { return Ok(v); },
             Err(e) => { 
-                let mut ex = std::boxed::Box::new(crate::Exception::new());
+                let mut ex = crate::Exception::new();
                 let loc = std::panic::Location::caller();
                 ex.file(loc.file()).position(loc.line(), loc.column()).name(name).ctx(ctx).src(e);
                 return Err(ex);
@@ -152,7 +169,7 @@ impl std::error::Error for Box<Exception> {}
 macro_rules! exception {
     ($($key:ident = $value:expr),*) => {
         {
-            let mut ex = std::boxed::Box::new(crate::Exception::new());
+            let mut ex = crate::Exception::new();
             let loc = std::panic::Location::caller();
             ex.file(loc.file()).position(loc.line(), loc.column());
             $(
@@ -163,14 +180,28 @@ macro_rules! exception {
     };
 }
 
+#[macro_export]
+macro_rules! throw {
+    ($($key:ident = $value:expr),*) => {
+        {
+            let mut ex = crate::Exception::new();
+            let loc = std::panic::Location::caller();
+            ex.file(loc.file()).position(loc.line(), loc.column());
+            $(
+                ex.$key($value);
+            )*;
+            return Err(ex);
+        }
+    };
+}
+
 #[cfg(test)]
 mod tests {
-    #[macro_use] use crate::exception::*;
+    #[macro_use] use crate::*;
+    use crate::EXN;
 
     #[test]
     fn test_exception() {
-        use std::io::Write;
-        let mut cout = std::io::stdout();
         use std::fs::File;
         match File::open("!!$%!$>TXT") { // deliberately generate an error for testing.
             Ok(fd) => { },
@@ -181,7 +212,7 @@ mod tests {
                     src=ex,
                     ctx="Deliberately wrap another Exception"
                 );
-                writeln!(cout, "{:#?}", &ex2).unwrap();
+                println!("{:#?}", &ex2);
             },
         }
     }
@@ -198,9 +229,23 @@ mod tests {
             let x = actual_test().handle("AnotherIntendedException", "")?;
             Ok(())
         }
-        use std::io::Write;
-        let mut cout = std::io::stdout();
         let x = actual_test2();
-        writeln!(cout, "{:#?}", x).unwrap();
+        println!("{:#?}", x);
+    }
+
+    #[test]
+    fn test_throw() {
+        fn div() -> Outcome<f64> {
+            let (a, b, eps): (f64, f64, f64) = (1.0, 0.0, 1.0 / 4096 as f64);
+            if b.abs() < eps {
+                throw!(
+                    name=EXN::ArithmeticException,
+                    ctx=&format!("Cannot divide a={:.4} by b={:.4}", a, b)
+                );
+            } else {
+                return Ok(a/b);
+            }
+        }
+        println!("{:?}", div());
     }
 }
