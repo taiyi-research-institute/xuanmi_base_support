@@ -4,7 +4,7 @@ import json
 
 app = Flask("SampleServer")
 
-@app.route("/test")
+@app.route("/test", methods=["POST"])
 def test():
     resp = dict(
         a="Data in field `a`.",

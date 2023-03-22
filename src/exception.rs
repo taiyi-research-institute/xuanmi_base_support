@@ -32,6 +32,19 @@ impl Exception {
         }
     }
 
+    pub fn dummy() -> Box<Self> {
+        Box::new(
+            Exception {
+                name: EXN::DummyException.to_string(),
+                file: String::new(),
+                line: 0,
+                column: 0,
+                context: None,
+                inner: None,
+            }
+        )
+    }
+
     #[inline]
     pub fn file(&mut self, file: &str) -> &mut Self {
         self.file = file.to_string();

@@ -1,8 +1,8 @@
 use serde::{Serialize, Deserialize, de::DeserializeOwned};
 use serde_json;
-use super::*;
-use super::conversion as cnv;
-use super::ExceptionNames as ex;
+#[macro_use] use crate::{
+    conversion as cnv, exception_names as EXN, *
+};
 use reqwest::{
     blocking::Client,
     header::{HeaderMap, CONTENT_TYPE, HeaderValue},
@@ -19,27 +19,28 @@ where RecvT: DeserializeOwned {
         h.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
         h
     };
-    let res = client.post(url).headers(headers.clone()).body(body.clone()).send();
-    if res.is_err() {
-        let err = Exception::new_auto(ex::HttpPostException, res.err().unwrap());
-        err.context("Failed to send");
-        return Err(err);
-    }
-    let res = res.unwrap().text();
-    if res.is_err() {
-        let err = Exception::new_auto(ex::HttpPostException, res.err().unwrap());
-        err.context("Response is not text");
-        return Err(err);
-    }
-    let res = cnv::json_to_obj(&res.unwrap());
-    if res.is_err() {
-        let err = Exception::new_auto(ex::DeserializationException, res.err().unwrap());
-        err.context(&format!("Response cannot be parsed into type `{}`", typename(res)));
-        return Err(err);
-    }
-    Ok(res.unwrap())
+    let body = body.to_string();
+    let res: String = client.post(url)
+    .headers(headers).body(body)
+    .send().handle(
+        EXN::DummyException, 
+        &format!("Failed to send POST request to url \"{}\".", url))?
+    .text().handle(
+        EXN::DummyException, 
+        &format!("Response from url \"{}\" is not text", url)
+    )?;
+    let res_obj = cnv::json_to_obj(&res)
+    .handle(
+        EXN::DummyException,
+        &format!(
+            "Response from url \"{}\"\ncannot be parsed into type `{}`.\nThe response is \"\"\"\n{}\n\"\"\"", 
+            url, 
+            std::any::type_name::<RecvT>(),
+            &res[..std::cmp::min(512, res.len())]
+        )
+    )?;
+    Ok(res_obj)
 }
-
 
 pub fn http_post<SendT, RecvT>(
     url: &str,
@@ -48,27 +49,30 @@ pub fn http_post<SendT, RecvT>(
 where SendT: Serialize, RecvT: DeserializeOwned
 {
     let n_retry: usize = 3;
-    let retry_delay = std::time::Duration::from_millis(250);
-    let body: String = cnv::obj_to_json(send_obj)?;
+    let retry_delay = std::time::Duration::from_millis(1000);
+    let body: String = cnv::obj_to_json(send_obj)
+    .handle(EXN::DummyException, "Request body is not valid JSON")?;
+    let mut outcome = Err(Exception::dummy());
 
     for i in 0..=n_retry {
         match one_post(&url, &body) {
-            Ok(res) => { return Ok(res); },
-            Err(__) => {
-                if i == n_retry {
-                    return Err(__);
-                } else {
-                    std::thread::sleep(retry_delay);
-                    continue;
-                }
+            Ok(res) => { 
+                outcome = Ok(res);
+                break;
+            },
+            Err(e) => {
+                outcome = Err(e);
+                std::thread::sleep(retry_delay);
             },
         }
     }
+    return outcome;
 }
 
 #[cfg(test)]
 mod tests {
     use serde::{Serialize, Deserialize, de::DeserializeOwned};
+    use crate::*;
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     struct Request {
@@ -88,9 +92,7 @@ mod tests {
             uname: "luban".to_string(),
             email: "luban@example.com".to_string(),
         };
-        let resp = crate::http_post("http://localhost:50000/test", &req); // this is a result type
-        use std::io::Write;
-        let mut cout = std::io::stdout();
-        writeln!(cout, "{:#?}", resp);
+        let resp: Outcome<Response> = crate::http_post("http://localhost:50000/test", &req); // this is a result type
+        eprintln!("{:#?}", resp);
     }
 }
