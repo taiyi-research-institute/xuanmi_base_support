@@ -1,4 +1,3 @@
-#![feature(track_caller)]
 use std::{
     error::Error as StdError,
     result::Result as StdResult,
@@ -160,7 +159,7 @@ impl<T, E: StdError + 'static> TraitStdResultToOutcome<T, E> for StdResult<T, E>
         match self {
             Ok(v) => { return Ok(v); },
             Err(_) => {
-                let mut ex = crate::Exception::new(),
+                let mut ex = crate::Exception::new();
                 let loc = std::panic::Location::caller();
                 ex.file(loc.file()).position(loc.line(), loc.column()).name(name).ctx(ctx).src(src);
                 return Err(ex);
@@ -207,7 +206,7 @@ macro_rules! throw {
             ex.file(loc.file()).position(loc.line(), loc.column());
             $(
                 ex.$key($value);
-            )*;
+            )*
             return Err(ex);
         }
     };
@@ -215,14 +214,14 @@ macro_rules! throw {
 
 #[cfg(test)]
 mod tests {
-    #[macro_use] use crate::*;
+    use crate::*;
     use crate::EXN;
 
     #[test]
     fn test_exception() {
         use std::fs::File;
         match File::open("!!$%!$>TXT") { // deliberately generate an error for testing.
-            Ok(fd) => { },
+            Ok(__) => { },
             Err(e) => { 
                 let ex = exception!(src=e, ctx="Trying to read file from path \"!!$%!$>TXT\"");
                 let ex2 = exception!(
@@ -240,11 +239,11 @@ mod tests {
         fn actual_test() -> Outcome<()> {
             use std::fs::File;
             let path = "!!$%!$>TXT";
-            let f = File::open("!!$%!$>TXT").handle("IntendedException", &format!("Path \"{}\" has no file.", path))?;
+            let _f = File::open("!!$%!$>TXT").handle("IntendedException", &format!("Path \"{}\" has no file.", path))?;
             Ok(())
         }
         fn actual_test2() -> Outcome<()> {
-            let x = actual_test().handle("AnotherIntendedException", "")?;
+            let _x = actual_test().handle("AnotherIntendedException", "")?;
             Ok(())
         }
         let x = actual_test2();

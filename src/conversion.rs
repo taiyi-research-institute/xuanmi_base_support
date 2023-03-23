@@ -1,4 +1,4 @@
-use std::{ptr, str, string::String, vec::Vec, result::Result};
+use std::{str, string::String, vec::Vec, result::Result};
 use serde::{Serialize, Deserialize, de::DeserializeOwned};
 use crate::{exception, TraitStdResultToOutcome, EXN, Outcome, PTRLEN};
 

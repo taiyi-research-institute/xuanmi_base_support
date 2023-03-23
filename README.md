@@ -16,6 +16,11 @@ branch = "main"
 ssh://git@github.com/taiyi-research-institute/xuanmi_base_support
 ```
 
+如果你需要运行单元测试，推荐使用如下命令。
+
+```
+cargo test -- --show-output
+```
 
 # 异常处理
 

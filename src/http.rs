@@ -1,6 +1,5 @@
-use serde::{Serialize, Deserialize, de::DeserializeOwned};
-use serde_json;
-#[macro_use] use crate::{
+use serde::{Serialize, de::DeserializeOwned};
+use crate::{
     conversion as cnv, exception_names as EXN, *
 };
 use reqwest::{
@@ -62,7 +61,7 @@ where SendT: Serialize, RecvT: DeserializeOwned
             },
             Err(e) => {
                 outcome = Err(e);
-                std::thread::sleep(retry_delay);
+                if i != n_retry { std::thread::sleep(retry_delay); }
             },
         }
     }
@@ -71,7 +70,7 @@ where SendT: Serialize, RecvT: DeserializeOwned
 
 #[cfg(test)]
 mod tests {
-    use serde::{Serialize, Deserialize, de::DeserializeOwned};
+    use serde::{Serialize, Deserialize};
     use crate::*;
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
