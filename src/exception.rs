@@ -134,6 +134,7 @@ impl Exception {
 
 pub trait TraitStdResultToOutcome<T, E> {
     fn handle(self, name: &str, ctx: &str) -> Outcome<T>;
+    fn handle_with(self, name: &str, ctx: &str, src: impl StdError + 'static) -> Outcome<T>;
 }
 
 impl<T, E: StdError + 'static> TraitStdResultToOutcome<T, E> for StdResult<T, E> {
@@ -145,6 +146,23 @@ impl<T, E: StdError + 'static> TraitStdResultToOutcome<T, E> for StdResult<T, E>
                 let mut ex = crate::Exception::new();
                 let loc = std::panic::Location::caller();
                 ex.file(loc.file()).position(loc.line(), loc.column()).name(name).ctx(ctx).src(e);
+                return Err(ex);
+            }
+        }
+    }
+
+    #[track_caller]
+    fn handle_with(self, 
+        name: &str,
+        ctx: &str, 
+        src: impl StdError + 'static
+    ) -> Outcome<T> {
+        match self {
+            Ok(v) => { return Ok(v); },
+            Err(_) => {
+                let mut ex = crate::Exception::new(),
+                let loc = std::panic::Location::caller();
+                ex.file(loc.file()).position(loc.line(), loc.column()).name(name).ctx(ctx).src(src);
                 return Err(ex);
             }
         }
