@@ -186,7 +186,7 @@ impl std::error::Error for Box<Exception> {}
 macro_rules! exception {
     ($($key:ident = $value:expr),*) => {
         {
-            let mut ex = crate::Exception::new();
+            let mut ex = Exception::new();
             let loc = std::panic::Location::caller();
             ex.file(loc.file()).position(loc.line(), loc.column());
             $(
@@ -201,7 +201,7 @@ macro_rules! exception {
 macro_rules! throw {
     ($($key:ident = $value:expr),*) => {
         {
-            let mut ex = crate::Exception::new();
+            let mut ex = Exception::new();
             let loc = std::panic::Location::caller();
             ex.file(loc.file()).position(loc.line(), loc.column());
             $(
