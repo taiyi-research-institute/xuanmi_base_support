@@ -27,12 +27,12 @@ cargo test -- --show-output
 当你使用此库提供的异常处理机制时，笔者推荐你养成如下几个习惯。按照这样的习惯来处理异常，你将得到类似于Java Exception的报错信息。
 
 1. 如果你自己写的函数有可能执行失败，那么这个函数的返回类型应该指定为 `Outcome<T>` 。
-2. 如果你调用别人的函数，且该函数有可能失败，那么你要在函数调用的后面跟 `.handle(name, context)?` 。
-   这是用来取代`.unwrap()` 的。
+2. 如果你调用别人的函数，且该函数有可能失败，那么你要在函数调用的后面跟 `.catch(name, context)?` 。
+   这是用来取代`.unwrap()` 或 `.expect()` 的。
 3. 把你写过的 `panic!(...);` 替换成 `throw!(...);` 。类似地，把你写过的 `assert!(cond, ...);` 替换成 `if cond { throw!(...); }` 。
 4. 给Exception起名时，建议传符号，不建议传字符串字面量。
 
-例1：调用别人的函数，该函数有可能失败。**要点：Outcome、handle**
+例1：调用别人的函数，该函数有可能失败。**要点：Outcome, catch**
 
 ```rust
 #[macro_use] use xuanmi_base_support::*; 
@@ -41,15 +41,18 @@ use serde_json;
 pub fn objectToJson<T>(
     obj: &T
 ) -> Outcome<String> where T: Serialize {
-    let json: String = serde_json::to_string(obj).handle( // 取代unwrap
-        EXN::SerializationException, // EXN是模块名. 我在模块EXN里定义了许多Exception名称
+    let json: String = serde_json::to_string(obj)
+    .catch( // 取代unwrap
+        // EXN是模块名. 我在模块EXN里定义了许多Exception名称
+        EXN::SerializationException, 
+        // 上下文信息
         &format!("Failed to convert object of type `{}` to JSON string", std::any::type_name::<T>()),
     )?;
     Ok(json)
 }
 ```
 
-例2：你写一个可能失败的函数。**要点：Outcome、throw**
+例2：你写一个可能失败的函数。**要点：Outcome, catch**
 
 ```rust
 #[macro_use] use xuanmi_base_support::*; 
@@ -115,7 +118,7 @@ fn test_http_post() -> Outcome<MyResponse> {
         email: "luban@example.com".to_string(),
     };
     let url = "http://localhost:50000/test";
-    let resp: MyResponse = http_post(url, &req).handle(
+    let resp: MyResponse = http_post(url, &req).catch(
     	name=EXN::HttpPostException,
     	ctx=&format!("Failed to post to {}", url)
     )?;

@@ -132,13 +132,13 @@ impl Exception {
 }
 
 pub trait TraitStdResultToOutcome<T, E> {
-    fn handle(self, name: &str, ctx: &str) -> Outcome<T>;
-    fn handle_with(self, name: &str, ctx: &str, src: impl StdError + 'static) -> Outcome<T>;
+    fn catch(self, name: &str, ctx: &str) -> Outcome<T>;
+    fn catch_replace(self, name: &str, ctx: &str, src: impl StdError + 'static) -> Outcome<T>;
 }
 
 impl<T, E: StdError + 'static> TraitStdResultToOutcome<T, E> for StdResult<T, E> {
     #[track_caller]
-    fn handle(self, name: &str, ctx: &str) -> Outcome<T> {
+    fn catch(self, name: &str, ctx: &str) -> Outcome<T> {
         match self {
             Ok(v) => { return Ok(v); },
             Err(e) => { 
@@ -151,7 +151,7 @@ impl<T, E: StdError + 'static> TraitStdResultToOutcome<T, E> for StdResult<T, E>
     }
 
     #[track_caller]
-    fn handle_with(self, 
+    fn catch_replace(self, 
         name: &str,
         ctx: &str, 
         src: impl StdError + 'static
@@ -212,6 +212,30 @@ macro_rules! throw {
     };
 }
 
+
+pub trait TraitStdOptionToOutcome<T> {
+    fn if_none(self, name: &str, ctx: &str) -> Outcome<T>;
+    fn if_none_wrap(self, name: &str, ctx: &str, src: impl StdError + 'static) -> Outcome<T>;
+}
+
+impl<T> TraitStdOptionToOutcome<T> for std::option::Option<T> {
+    #[track_caller]
+    fn if_none(self, name: &str, ctx: &str) -> Outcome<T> {
+        match self {
+            Some(t) => Ok(t),
+            None => throw!(name=name, ctx=ctx),
+        }
+    }
+
+    #[track_caller]
+    fn if_none_wrap(self, name: &str, ctx: &str, src: impl StdError + 'static) -> Outcome<T> {
+        match self {
+            Some(t) => Ok(t),
+            None => throw!(name=name, ctx=ctx, src=src),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -235,15 +259,15 @@ mod tests {
     }
 
     #[test]
-    fn test_handle() {
+    fn test_catch() {
         fn actual_test() -> Outcome<()> {
             use std::fs::File;
             let path = "!!$%!$>TXT";
-            let _f = File::open("!!$%!$>TXT").handle("IntendedException", &format!("Path \"{}\" has no file.", path))?;
+            let _f = File::open("!!$%!$>TXT").catch("IntendedException", &format!("Path \"{}\" has no file.", path))?;
             Ok(())
         }
         fn actual_test2() -> Outcome<()> {
-            let _x = actual_test().handle("AnotherIntendedException", "")?;
+            let _x = actual_test().catch("AnotherIntendedException", "")?;
             Ok(())
         }
         let x = actual_test2();
@@ -264,5 +288,12 @@ mod tests {
             }
         }
         println!("{:?}", div());
+    }
+    
+    #[test]
+    fn test_option() {
+        let x: Option<i32> = None;
+        let x_out = x.if_none("IntendedException", "x has no value");
+        println!("{:#?}", x_out);
     }
 }

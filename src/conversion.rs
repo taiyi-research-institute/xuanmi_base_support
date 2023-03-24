@@ -7,7 +7,7 @@ use crate::*;
 pub fn obj_to_json<T>(
     obj: &T
 ) -> Outcome<String> where T: Serialize {
-    let json: String = serde_json::to_string(obj).handle(
+    let json: String = serde_json::to_string(obj).catch(
         EXN::SerializationException,
         &format!("Failed to convert object of type `{}` to String", std::any::type_name::<T>()),
     )?;
@@ -28,7 +28,7 @@ pub fn jval_to_obj<T>(
     val: serde_json::value::Value
 ) -> Outcome<T> where T: DeserializeOwned {
     let obj: T = serde_json::from_value(val)
-    .handle(
+    .catch(
         EXN::DeserializationException,
         &format!(
             "jval_to_obj failed to convert serde_json::Value to object of type `{}`",
@@ -78,7 +78,7 @@ pub fn str_from_partof_vecu8(
     *beg = end.clone(); *end += PTRLEN;
     let mut len: usize = 0;
     if let Some(item) = buf.get(*beg..*end) {
-        len = usize::from_be_bytes(item.try_into().handle(
+        len = usize::from_be_bytes(item.try_into().catch(
             EXN::DeserializationException,
             &format!("Bytes {:?} cannot be decoded as Big-Endian usize", &item),
         )?);
@@ -90,7 +90,7 @@ pub fn str_from_partof_vecu8(
     }
     *beg = *end; *end += len;
     if let Some(item) = buf.get(*beg..*end) {
-        let ret: String = String::from_utf8(item.to_vec()).handle(
+        let ret: String = String::from_utf8(item.to_vec()).catch(
             EXN::InvalidUTF8BytesException,
             "",
         )?;

@@ -21,15 +21,15 @@ where RecvT: DeserializeOwned {
     let body = body.to_string();
     let res: String = client.post(url)
     .headers(headers).body(body)
-    .send().handle(
+    .send().catch(
         EXN::DummyException, 
         &format!("Failed to send POST request to url \"{}\".", url))?
-    .text().handle(
+    .text().catch(
         EXN::DummyException, 
         &format!("Response from url \"{}\" is not text", url)
     )?;
     let res_obj = cnv::json_to_obj(&res)
-    .handle(
+    .catch(
         EXN::DummyException,
         &format!(
             "Response from url \"{}\"\ncannot be parsed into type `{}`.\nThe response is \"\"\"\n{}\n\"\"\"", 
@@ -50,7 +50,7 @@ where SendT: Serialize, RecvT: DeserializeOwned
     let n_retry: usize = 3;
     let retry_delay = std::time::Duration::from_millis(1000);
     let body: String = cnv::obj_to_json(send_obj)
-    .handle(EXN::DummyException, "Request body is not valid JSON")?;
+    .catch(EXN::DummyException, "Request body is not valid JSON")?;
     let mut outcome = Err(Exception::dummy());
 
     for i in 0..=n_retry {
