@@ -8,6 +8,7 @@ use std::{
 pub type Outcome<T> = StdResult<T, Box<Exception>>;
 // pub type Result<T> = StdResult<T, Box<Exception>>; // avoid name collision with std Result
 use crate::EXN;
+use anyhow::Error as AnyhowError;
 
 pub struct Exception {
     name: String,
@@ -162,6 +163,27 @@ impl<T, E: StdError + 'static> TraitStdResultToOutcome<T, E> for StdResult<T, E>
                 let mut ex = crate::Exception::new();
                 let loc = std::panic::Location::caller();
                 ex.file(loc.file()).position(loc.line(), loc.column()).name(name).ctx(ctx).src(src);
+                return Err(ex);
+            }
+        }
+    }
+}
+
+pub trait TraitAnyhowResultToOutcome<T> {
+    fn catch_anyhow(self, name: &str, ctx: &str) -> Outcome<T>;
+}
+
+impl<T> TraitAnyhowResultToOutcome<T> for StdResult<T, AnyhowError> {
+    #[track_caller]
+    fn catch_anyhow(self, name: &str, ctx: &str) -> Outcome<T> {
+        match self {
+            Ok(v) => { return Ok(v); },
+            Err(e) => { 
+                let mut ex = crate::Exception::new();
+                let loc = std::panic::Location::caller();
+                ex.file(loc.file()).position(loc.line(), loc.column()).name(name).ctx(
+                    &format!("{}\nCaused by:{:?}", ctx, &e)
+                );
                 return Err(ex);
             }
         }
