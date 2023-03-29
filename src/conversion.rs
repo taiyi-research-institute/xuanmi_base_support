@@ -1,4 +1,4 @@
-use std::{str, string::String, vec::Vec, result::Result};
+use std::{str, string::String, vec::Vec};
 use serde::{Serialize, Deserialize, de::DeserializeOwned};
 use crate::*;
 
@@ -17,8 +17,11 @@ pub fn obj_to_json<T>(
 /// Convert a json string to an object.
 pub fn json_to_obj<'a, T>(
     text: &'a str
-) -> Result<T, serde_json::Error> where T: Deserialize<'a> {
-    let obj: T = serde_json::from_str(text)?;
+) -> Outcome<T> where T: Deserialize<'a> {
+    let obj: T = serde_json::from_str(text).catch(
+        EXN::DeserializationException,
+        &format!("Failed to convert string to object of type `{}`", std::any::type_name::<T>())
+    )?;
     Ok(obj)
 }
 // #endregion
