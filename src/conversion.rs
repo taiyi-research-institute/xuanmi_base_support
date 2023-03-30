@@ -2,7 +2,7 @@ use std::{str, string::String, vec::Vec};
 use serde::{Serialize, Deserialize, de::DeserializeOwned};
 use crate::*;
 
-fn read_str_from_file(path: &str) -> Outcome<String> {
+pub fn read_str_from_file(path: &str) -> Outcome<String> {
     use std::fs::File;
     use std::io::{Read, Seek, SeekFrom};
     let mut fd = File::open(path).catch(
