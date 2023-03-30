@@ -14,5 +14,6 @@ register_exception_names!(
     DeserializationException,
     IndexOutOfBoundException,
     InvalidUTF8BytesException,
-    ArithmeticException
+    ArithmeticException,
+    IOException
 );

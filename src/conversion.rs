@@ -2,6 +2,33 @@ use std::{str, string::String, vec::Vec};
 use serde::{Serialize, Deserialize, de::DeserializeOwned};
 use crate::*;
 
+fn read_str_from_file(path: &str) -> Outcome<String> {
+    use std::fs::File;
+    use std::io::{Read, Seek, SeekFrom};
+    let mut fd = File::open(path).catch(
+        EXN::IOException,
+        &format!("File::open failed to access \"{}\"", path)
+    )?;
+    let len = fd.seek(SeekFrom::End(0)).catch(
+        EXN::IOException,
+        &format!("File::seek failed to access \"{}\"", path)
+    )? as usize;
+    let _0 = fd.seek(SeekFrom::Start(0)).catch(
+        EXN::IOException,
+        &format!("File::seek failed to access \"{}\"", path)
+    )?;
+    let mut buf = vec![0_u8; len];
+    let _len = fd.read(buf.as_mut_slice()).catch(
+        EXN::IOException,
+        &format!("File::seek failed to access \"{}\"", path)
+    )?;
+    let ret = String::from_utf8(buf).catch(
+        EXN::InvalidUTF8BytesException,
+        ""
+    )?;
+    Ok(ret)
+}
+
 // #region conversion between JSON and object
 /// Convert an object to json string.
 pub fn obj_to_json<T>(
