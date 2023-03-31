@@ -54,11 +54,14 @@ pub fn write_str_to_file(path: &str, text: &str) -> Outcome<usize> {
 }
 
 pub trait LexicalAbspath {
-    fn to_lexical_abspath(&self) -> Outcome<PathBuf>;
+    fn to_lexical_abspath(&self) -> Outcome<String>;
 }
 
-impl LexicalAbspath for str {
-    fn to_lexical_abspath(&self) -> Outcome<PathBuf> {
+impl<STR> LexicalAbspath for STR
+where
+    STR: AsRef<str> + core::fmt::Display
+{
+    fn to_lexical_abspath(&self) -> Outcome<String> {
         let expanded = shellexpand::full(&self).catch(
             PathResolutionException,
             &format!("Cannot expand `~` or/and env-vars from path: {}", &self),
@@ -81,7 +84,7 @@ impl LexicalAbspath for str {
                     }
                 }
             }
-            abspath
+            abspath.to_string_lossy().as_ref().to_string()
         };
         Ok(abspath)
     }
@@ -89,16 +92,12 @@ impl LexicalAbspath for str {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Cow;
-
     use crate::{Outcome, LexicalAbspath};
 
     #[test]
     pub fn test_abspath() -> Outcome<()> {
         let x = "~/test".to_lexical_abspath()?;
-        let x: Cow<str> = x.as_os_str().to_string_lossy();
-        let y = "~/../../$LANG".to_lexical_abspath()?;
-        let y: Cow<str> = y.as_os_str().to_string_lossy();
+        let y = String::from("~/../../$LANG").to_lexical_abspath()?;
         println!("x={}", x);
         println!("y={}", y);
         Ok(())
