@@ -18,3 +18,6 @@ features = ["derive"]
 
 [dependencies.serde_json]
 version = "1"
+
+[dependencies.shellexpand]
+version = "3.1"

@@ -6,5 +6,6 @@
 #[macro_use] mod lang; pub use lang::*;
 mod http; pub use http::*;
 mod conversion; pub use conversion::*;
+mod io; pub use io::*;
 #[macro_use] mod exception; pub use exception::*;
 pub mod exception_names; pub use exception_names as EXN;

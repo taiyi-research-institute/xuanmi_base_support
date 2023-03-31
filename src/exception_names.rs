@@ -15,5 +15,6 @@ register_exception_names!(
     IndexOutOfBoundException,
     InvalidUTF8BytesException,
     ArithmeticException,
-    IOException
+    IOException,
+    PathResolutionException
 );
