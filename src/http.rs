@@ -48,7 +48,7 @@ pub fn http_post<SendT, RecvT>(
 where SendT: Serialize, RecvT: DeserializeOwned
 {
     let n_retry: usize = 3;
-    let retry_delay = std::time::Duration::from_millis(1000);
+    let retry_delay = std::time::Duration::from_millis(50);
     let body: String = cnv::obj_to_json(send_obj)
     .catch(EXN::DummyException, "Request body is not valid JSON")?;
     let mut outcome = Err(Exception::dummy());

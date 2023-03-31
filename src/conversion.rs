@@ -15,6 +15,17 @@ pub fn obj_to_json<T>(
     Ok(json)
 }
 
+/// Convert an object to formatted json string.
+pub fn obj_to_json_pretty<T>(
+    obj: &T
+) -> Outcome<String> where T: Serialize {
+    let json: String = serde_json::to_string_pretty(obj).catch(
+        EXN::SerializationException,
+        &format!("Failed to convert object of type `{}` to String", std::any::type_name::<T>()),
+    )?;
+    Ok(json)
+}
+
 /// Convert a json string to an object.
 pub fn json_to_obj<'a, T>(
     text: &'a str
