@@ -134,6 +134,7 @@ impl Exception {
 
 pub trait TraitStdResultToOutcome<T, E> {
     fn catch(self, name: &str, ctx: &str) -> Outcome<T>;
+    fn catch_(self) -> Outcome<T>;
     fn catch_replace(self, name: &str, ctx: &str, src: impl StdError + 'static) -> Outcome<T>;
 }
 
@@ -146,6 +147,19 @@ impl<T, E: StdError + 'static> TraitStdResultToOutcome<T, E> for StdResult<T, E>
                 let mut ex = crate::Exception::new();
                 let loc = std::panic::Location::caller();
                 ex.file(loc.file()).position(loc.line(), loc.column()).name(name).ctx(ctx).src(e);
+                return Err(ex);
+            }
+        }
+    }
+
+    #[track_caller]
+    fn catch_(self) -> Outcome<T> {
+        match self {
+            Ok(v) => { return Ok(v); },
+            Err(e) => { 
+                let mut ex = crate::Exception::new();
+                let loc = std::panic::Location::caller();
+                ex.file(loc.file()).position(loc.line(), loc.column()).name("").ctx("").src(e);
                 return Err(ex);
             }
         }
