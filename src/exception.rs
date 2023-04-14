@@ -1,8 +1,4 @@
-use std::{
-    error::Error as StdError,
-    result::Result as StdResult,
-    fmt,
-};
+use std::{error::Error as StdError, fmt, result::Result as StdResult};
 
 /// Make every fail-able function return StdResult<T, Box<dyn StdError>>.
 pub type Outcome<T> = StdResult<T, Box<Exception>>;
@@ -33,16 +29,14 @@ impl Exception {
     }
 
     pub fn dummy() -> Box<Self> {
-        Box::new(
-            Exception {
-                name: EXN::DummyException.to_string(),
-                file: String::new(),
-                line: 0,
-                column: 0,
-                context: None,
-                inner: None,
-            }
-        )
+        Box::new(Exception {
+            name: EXN::DummyException.to_string(),
+            file: String::new(),
+            line: 0,
+            column: 0,
+            context: None,
+            inner: None,
+        })
     }
 
     #[inline]
@@ -142,11 +136,17 @@ impl<T, E: StdError + 'static> TraitStdResultToOutcome<T, E> for StdResult<T, E>
     #[track_caller]
     fn catch(self, name: &str, ctx: &str) -> Outcome<T> {
         match self {
-            Ok(v) => { return Ok(v); },
-            Err(e) => { 
+            Ok(v) => {
+                return Ok(v);
+            }
+            Err(e) => {
                 let mut ex = crate::Exception::new();
                 let loc = std::panic::Location::caller();
-                ex.file(loc.file()).position(loc.line(), loc.column()).name(name).ctx(ctx).src(e);
+                ex.file(loc.file())
+                    .position(loc.line(), loc.column())
+                    .name(name)
+                    .ctx(ctx)
+                    .src(e);
                 return Err(ex);
             }
         }
@@ -155,28 +155,36 @@ impl<T, E: StdError + 'static> TraitStdResultToOutcome<T, E> for StdResult<T, E>
     #[track_caller]
     fn catch_(self) -> Outcome<T> {
         match self {
-            Ok(v) => { return Ok(v); },
-            Err(e) => { 
+            Ok(v) => {
+                return Ok(v);
+            }
+            Err(e) => {
                 let mut ex = crate::Exception::new();
                 let loc = std::panic::Location::caller();
-                ex.file(loc.file()).position(loc.line(), loc.column()).name("").ctx("").src(e);
+                ex.file(loc.file())
+                    .position(loc.line(), loc.column())
+                    .name("")
+                    .ctx("")
+                    .src(e);
                 return Err(ex);
             }
         }
     }
 
     #[track_caller]
-    fn catch_replace(self, 
-        name: &str,
-        ctx: &str, 
-        src: impl StdError + 'static
-    ) -> Outcome<T> {
+    fn catch_replace(self, name: &str, ctx: &str, src: impl StdError + 'static) -> Outcome<T> {
         match self {
-            Ok(v) => { return Ok(v); },
+            Ok(v) => {
+                return Ok(v);
+            }
             Err(_) => {
                 let mut ex = crate::Exception::new();
                 let loc = std::panic::Location::caller();
-                ex.file(loc.file()).position(loc.line(), loc.column()).name(name).ctx(ctx).src(src);
+                ex.file(loc.file())
+                    .position(loc.line(), loc.column())
+                    .name(name)
+                    .ctx(ctx)
+                    .src(src);
                 return Err(ex);
             }
         }
@@ -191,13 +199,16 @@ impl<T> TraitAnyhowResultToOutcome<T> for StdResult<T, AnyhowError> {
     #[track_caller]
     fn catch_anyhow(self, name: &str, ctx: &str) -> Outcome<T> {
         match self {
-            Ok(v) => { return Ok(v); },
-            Err(e) => { 
+            Ok(v) => {
+                return Ok(v);
+            }
+            Err(e) => {
                 let mut ex = crate::Exception::new();
                 let loc = std::panic::Location::caller();
-                ex.file(loc.file()).position(loc.line(), loc.column()).name(name).ctx(
-                    &format!("{}\nCaused by:{:?}", ctx, &e)
-                );
+                ex.file(loc.file())
+                    .position(loc.line(), loc.column())
+                    .name(name)
+                    .ctx(&format!("{}\nCaused by:{:?}", ctx, &e));
                 return Err(ex);
             }
         }
@@ -248,6 +259,45 @@ macro_rules! throw {
     };
 }
 
+#[macro_export]
+macro_rules! assert_throw {
+    ($cond:expr, $name:expr, $ctx:expr) => {
+        if !($cond) {
+            let mut ex = Exception::new();
+            let loc = std::panic::Location::caller();
+            ex.file(loc.file()).position(loc.line(), loc.column());
+            ex.name($name).ctx(&format!(
+                "Condition: {}\nExplanation: {}",
+                stringify!($cond),
+                $ctx
+            ));
+            return Err(ex);
+        }
+    };
+    ($cond:expr, $ctx:expr) => {
+        if !($cond) {
+            let mut ex = Exception::new();
+            let loc = std::panic::Location::caller();
+            ex.file(loc.file()).position(loc.line(), loc.column());
+            ex.name("AssertionFailedException").ctx(&format!(
+                "Condition: {}\nExplanation: {}",
+                stringify!($cond),
+                $ctx
+            ));
+            return Err(ex);
+        }
+    };
+    ($cond:expr) => {
+        if !($cond) {
+            let mut ex = Exception::new();
+            let loc = std::panic::Location::caller();
+            ex.file(loc.file()).position(loc.line(), loc.column());
+            ex.name("AssertionFailedException")
+                .ctx(&format!("Condition: {}", stringify!($cond)));
+            return Err(ex);
+        }
+    };
+}
 
 pub trait TraitStdOptionToOutcome<T> {
     fn if_none(self, name: &str, ctx: &str) -> Outcome<T>;
@@ -259,7 +309,7 @@ impl<T> TraitStdOptionToOutcome<T> for std::option::Option<T> {
     fn if_none(self, name: &str, ctx: &str) -> Outcome<T> {
         match self {
             Some(t) => Ok(t),
-            None => throw!(name=name, ctx=ctx),
+            None => throw!(name = name, ctx = ctx),
         }
     }
 
@@ -267,30 +317,34 @@ impl<T> TraitStdOptionToOutcome<T> for std::option::Option<T> {
     fn if_none_wrap(self, name: &str, ctx: &str, src: impl StdError + 'static) -> Outcome<T> {
         match self {
             Some(t) => Ok(t),
-            None => throw!(name=name, ctx=ctx, src=src),
+            None => throw!(name = name, ctx = ctx, src = src),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::*;
     use crate::EXN;
+    use crate::*;
 
     #[test]
     fn test_exception() {
         use std::fs::File;
-        match File::open("!!$%!$>TXT") { // deliberately generate an error for testing.
-            Ok(__) => { },
-            Err(e) => { 
-                let ex = exception!(src=e, ctx="Trying to read file from path \"!!$%!$>TXT\"");
+        match File::open("!!$%!$>TXT") {
+            // deliberately generate an error for testing.
+            Ok(__) => {}
+            Err(e) => {
+                let ex = exception!(
+                    src = e,
+                    ctx = "Trying to read file from path \"!!$%!$>TXT\""
+                );
                 let ex2 = exception!(
-                    name="IntendedException",
-                    src=ex,
-                    ctx="Deliberately wrap another Exception"
+                    name = "IntendedException",
+                    src = ex,
+                    ctx = "Deliberately wrap another Exception"
                 );
                 println!("{:#?}", &ex2);
-            },
+            }
         }
     }
 
@@ -299,7 +353,10 @@ mod tests {
         fn actual_test() -> Outcome<()> {
             use std::fs::File;
             let path = "!!$%!$>TXT";
-            let _f = File::open("!!$%!$>TXT").catch("IntendedException", &format!("Path \"{}\" has no file.", path))?;
+            let _f = File::open("!!$%!$>TXT").catch(
+                "IntendedException",
+                &format!("Path \"{}\" has no file.", path),
+            )?;
             Ok(())
         }
         fn actual_test2() -> Outcome<()> {
@@ -316,20 +373,38 @@ mod tests {
             let (a, b, eps): (f64, f64, f64) = (1.0, 0.0, 1.0 / 4096 as f64);
             if b.abs() < eps {
                 throw!(
-                    name=EXN::ArithmeticException,
-                    ctx=&format!("Cannot divide a={:.4} by b={:.4}", a, b)
+                    name = EXN::ArithmeticException,
+                    ctx = &format!("Cannot divide a={:.4} by b={:.4}", a, b)
                 );
             } else {
-                return Ok(a/b);
+                return Ok(a / b);
             }
         }
         println!("{:?}", div());
     }
-    
+
     #[test]
     fn test_option() {
         let x: Option<i32> = None;
         let x_out = x.if_none("IntendedException", "x has no value");
         println!("{:#?}", x_out);
+    }
+
+    #[test]
+    fn test_assertion1() -> Outcome<()> {
+        assert_throw!(1 == 2);
+        Ok(())
+    }
+
+    #[test]
+    fn test_assertion2() -> Outcome<()> {
+        assert_throw!(1 == 2, "1 will never equal to 2");
+        Ok(())
+    }
+
+    #[test]
+    fn test_assertion3() -> Outcome<()> {
+        assert_throw!(1 == 2, "IntendedException", "1 will never equal to 2");
+        Ok(())
     }
 }
