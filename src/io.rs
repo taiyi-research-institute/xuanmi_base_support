@@ -59,7 +59,7 @@ pub trait LexicalAbspath {
 
 impl<STR> LexicalAbspath for STR
 where
-    STR: AsRef<str> + core::fmt::Display
+    STR: AsRef<str> + core::fmt::Display,
 {
     fn to_lexical_abspath(&self) -> Outcome<String> {
         let expanded = shellexpand::full(&self).catch(
@@ -92,7 +92,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{Outcome, LexicalAbspath};
+    use crate::{LexicalAbspath, Outcome};
 
     #[test]
     pub fn test_abspath() -> Outcome<()> {
