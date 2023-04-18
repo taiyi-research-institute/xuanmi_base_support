@@ -8,7 +8,7 @@ macro_rules! stack {
 }
 
 #[macro_export]
-macro_rules! function_name {
+macro_rules! fnn {
     () => {{
         fn f() {}
         fn type_name_of<T>(_: T) -> &'static str {
