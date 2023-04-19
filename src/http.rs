@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::{conversion as cnv, exception_names as EXN, *};
 use reqwest::{
     blocking::Client,
@@ -9,7 +11,10 @@ fn one_post<RecvT>(url: &str, body: &str) -> Outcome<RecvT>
 where
     RecvT: DeserializeOwned,
 {
-    let client: Client = Client::new();
+    let client: Client = Client::builder()
+        .timeout(Duration::from_secs(20))
+        .build()
+        .catch(EXN::DummyException, "Failed to create http client")?;
     let headers = {
         let mut h = HeaderMap::new();
         h.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
