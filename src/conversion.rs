@@ -179,3 +179,55 @@ pub fn str_into_partof_vecu8(
     bslice_into_partof_vecu8(bslice, buf, beg, end)
 }
 // #endregion
+
+pub trait JsonDictGet<V>
+where
+    V: DeserializeOwned,
+{
+    fn get_must_provide(&self, field: &str) -> Outcome<V>;
+    fn get_with_default(&self, field: &str, default: V) -> Outcome<V>;
+}
+
+impl<V> JsonDictGet<V> for serde_json::Map<String, serde_json::Value>
+where
+    V: DeserializeOwned,
+{
+    fn get_must_provide(&self, field: &str) -> Outcome<V> {
+        match self.get(field) {
+            Some(jval) => {
+                let val: V = jval_to_obj(jval.clone()).catch(
+                    "JsonInvalidFieldException",
+                    &format!(
+                        "The provided JSON field \"{}\" cannot be parsed into type `{}`",
+                        field,
+                        std::any::type_name::<V>()
+                    ),
+                )?;
+                Ok(val)
+            }
+            None => {
+                throw!(
+                    name = "JsonNoRequiredFieldException",
+                    ctx = &format!("The required JSON field \"{}\" is absent", field)
+                );
+            }
+        }
+    }
+
+    fn get_with_default(&self, field: &str, default: V) -> Outcome<V> {
+        match self.get(field) {
+            Some(jval) => {
+                let val: V = jval_to_obj(jval.clone()).catch(
+                    "JsonInvalidFieldException",
+                    &format!(
+                        "The provided JSON field \"{}\" cannot be parsed into type `{}`",
+                        field,
+                        std::any::type_name::<V>()
+                    ),
+                )?;
+                Ok(val)
+            }
+            None => Ok(default),
+        }
+    }
+}
