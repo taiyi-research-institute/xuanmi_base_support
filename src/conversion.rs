@@ -188,7 +188,9 @@ where
     fn get_with_default(&self, field: &str, default: V) -> Outcome<V>;
 }
 
-impl<V> JsonDictGet<V> for serde_json::Map<String, serde_json::Value>
+pub type JsonDict = serde_json::Map<String, serde_json::Value>;
+
+impl<V> JsonDictGet<V> for JsonDict
 where
     V: DeserializeOwned,
 {
