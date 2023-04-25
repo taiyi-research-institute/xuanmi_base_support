@@ -180,21 +180,22 @@ pub fn str_into_partof_vecu8(
 }
 // #endregion
 
-pub trait JsonDictGet<V>
-where
-    V: DeserializeOwned,
-{
-    fn get_must_provide(&self, field: &str) -> Outcome<V>;
-    fn get_with_default(&self, field: &str, default: V) -> Outcome<V>;
+pub trait JsonDictGet {
+    fn get_must_provide<V>(&self, field: &str) -> Outcome<V>
+    where
+        V: DeserializeOwned;
+    fn get_with_default<V>(&self, field: &str, default: V) -> Outcome<V>
+    where
+        V: DeserializeOwned;
 }
 
 pub type JsonDict = serde_json::Map<String, serde_json::Value>;
 
-impl<V> JsonDictGet<V> for JsonDict
-where
-    V: DeserializeOwned,
-{
-    fn get_must_provide(&self, field: &str) -> Outcome<V> {
+impl JsonDictGet for JsonDict {
+    fn get_must_provide<V>(&self, field: &str) -> Outcome<V>
+    where
+        V: DeserializeOwned,
+    {
         match self.get(field) {
             Some(jval) => {
                 let val: V = jval_to_obj(jval.clone()).catch(
@@ -216,7 +217,10 @@ where
         }
     }
 
-    fn get_with_default(&self, field: &str, default: V) -> Outcome<V> {
+    fn get_with_default<V>(&self, field: &str, default: V) -> Outcome<V>
+    where
+        V: DeserializeOwned,
+    {
         match self.get(field) {
             Some(jval) => {
                 let val: V = jval_to_obj(jval.clone()).catch(
