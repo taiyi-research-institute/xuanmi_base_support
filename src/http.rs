@@ -15,15 +15,15 @@ where
         .timeout(Duration::from_secs(20))
         .build()
         .catch(EXN::DummyException, "Failed to create http client")?;
-    let headers = {
-        let mut h = HeaderMap::new();
-        h.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
-        h
-    };
+    // let headers = {
+    //     let mut h = HeaderMap::new();
+    //     h.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+    //     h
+    // };
     let body = body.to_string();
     let res: String = client
         .post(url)
-        .headers(headers)
+        // .headers(headers)
         .body(body)
         .send()
         .catch(
