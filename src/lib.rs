@@ -6,8 +6,6 @@
 #[macro_use]
 mod lang;
 pub use lang::*;
-mod http;
-pub use http::*;
 mod conversion;
 pub use conversion::*;
 mod io;
