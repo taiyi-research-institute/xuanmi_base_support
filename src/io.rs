@@ -43,8 +43,8 @@ pub fn write_str_to_file(path: &str, text: &str) -> Outcome<usize> {
     )?;
     if len_to_write != len_written {
         throw!(
-            name = IOException,
-            ctx = &format!(
+            IOException,
+            &format!(
                 "To path \"{}\", expected to write {} bytes, actually wrote {} bytes",
                 path, len_to_write, len_written
             )

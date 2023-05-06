@@ -76,14 +76,7 @@ pub fn str_to_u8p(text: &str) -> (*const u8, usize) {
 /// Convert a fat-pointer of utf8-bytes to an owned String.
 pub fn u8p_to_str(u8p: *const u8, len: usize) -> Outcome<String> {
     let bytes: &[u8] = unsafe { std::slice::from_raw_parts(u8p, len) };
-    match String::from_utf8(bytes.to_vec()) {
-        Ok(txt) => {
-            return Ok(txt);
-        }
-        Err(e) => {
-            return Err(exception!(name = EXN::DeserializationException, src = e));
-        }
-    }
+    String::from_utf8(bytes.to_vec()).catch_()
 }
 
 /// Convert a fat-pointer of bytes to a byte slice.
@@ -99,37 +92,30 @@ pub fn str_from_partof_vecu8(buf: &Vec<u8>, beg: &mut usize, end: &mut usize) ->
     *beg = end.clone();
     *end += PTRLEN;
     let mut len: usize = 0;
-    if let Some(item) = buf.get(*beg..*end) {
-        len = usize::from_be_bytes(item.try_into().catch(
-            EXN::DeserializationException,
-            &format!("Bytes {:?} cannot be decoded as Big-Endian usize", &item),
-        )?);
-    } else {
-        return Err(exception!(
-            name = EXN::IndexOutOfBoundException,
-            ctx = &format!(
-                "When reading the length, index {:?} out of bound for bufsize {}",
-                *beg..*end,
-                buf.len()
-            )
-        ));
-    }
+    let item = buf.get(*beg..*end).if_none(
+        EXN::IndexOutOfBoundException,
+        &format!(
+            "When reading the length, index {:?} out of bound for bufsize {}",
+            *beg..*end,
+            buf.len()
+        ),
+    )?;
+    len = usize::from_be_bytes(item.try_into().catch(
+        EXN::DeserializationException,
+        &format!("Bytes {:?} cannot be decoded as Big-Endian usize", &item),
+    )?);
     *beg = *end;
     *end += len;
-    if let Some(item) = buf.get(*beg..*end) {
-        let ret: String =
-            String::from_utf8(item.to_vec()).catch(EXN::InvalidUTF8BytesException, "")?;
-        return Ok(ret);
-    } else {
-        return Err(exception!(
-            name = EXN::IndexOutOfBoundException,
-            ctx = &format!(
-                "When reading the bytes, index {:?} out of bound for bufsize {}",
-                *beg..*end,
-                buf.len()
-            )
-        ));
-    }
+    let item = buf.get(*beg..*end).if_none(
+        EXN::IndexOutOfBoundException,
+        &format!(
+            "When reading the bytes, index {:?} out of bound for bufsize {}",
+            *beg..*end,
+            buf.len()
+        ),
+    )?;
+    let ret: String = String::from_utf8(item.to_vec()).catch_()?;
+    return Ok(ret);
 }
 
 pub fn bslice_into_partof_vecu8(
@@ -140,33 +126,28 @@ pub fn bslice_into_partof_vecu8(
 ) -> Outcome<()> {
     *beg = end.clone();
     *end += PTRLEN;
-    if let Some(item) = buf.get_mut(*beg..*end) {
-        item.copy_from_slice(&bslice.len().to_be_bytes());
-    } else {
-        return Err(exception!(
-            name = EXN::IndexOutOfBoundException,
-            ctx = &format!(
-                "When writing the length, index {:?} out of bound for bufsize {}",
-                *beg..*end,
-                buf.len()
-            )
-        ));
-    }
+    let buflen = buf.len();
+    let item = buf.get_mut(*beg..*end).if_none(
+        EXN::IndexOutOfBoundException,
+        &format!(
+            "When writing the length, index {:?} out of bound for bufsize {}",
+            *beg..*end,
+            buflen
+        ),
+    )?;
+    item.copy_from_slice(&bslice.len().to_be_bytes());
     *beg = end.clone();
     *end += bslice.len();
-    if let Some(item) = buf.get_mut(*beg..*end) {
-        item.copy_from_slice(bslice);
-        return Ok(());
-    } else {
-        return Err(exception!(
-            name = EXN::IndexOutOfBoundException,
-            ctx = &format!(
-                "When writing the bytes, index {:?} out of bound for bufsize {}",
-                *beg..*end,
-                buf.len()
-            )
-        ));
-    }
+    let item = buf.get_mut(*beg..*end).if_none(
+        EXN::IndexOutOfBoundException,
+        &format!(
+            "When writing the bytes, index {:?} out of bound for bufsize {}",
+            *beg..*end,
+            buflen
+        ),
+    )?;
+    item.copy_from_slice(bslice);
+    Ok(())
 }
 
 pub fn str_into_partof_vecu8(
@@ -210,8 +191,8 @@ impl JsonDictGet for JsonDict {
             }
             None => {
                 throw!(
-                    name = "JsonNoRequiredFieldException",
-                    ctx = &format!("The required JSON field \"{}\" is absent", field)
+                    "JsonNoRequiredFieldException",
+                    &format!("The required JSON field \"{}\" is absent", field)
                 );
             }
         }
