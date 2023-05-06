@@ -168,6 +168,7 @@ pub trait JsonDictGet {
     fn get_with_default<V>(&self, field: &str, default: V) -> Outcome<V>
     where
         V: DeserializeOwned;
+    fn get_status(&self) -> Outcome<()>;
 }
 
 pub type JsonDict = serde_json::Map<String, serde_json::Value>;
@@ -215,6 +216,23 @@ impl JsonDictGet for JsonDict {
                 Ok(val)
             }
             None => Ok(default),
+        }
+    }
+
+    fn get_status(&self) -> Outcome<()> {
+        let status: String = self.get_must_provide("status").unwrap();
+        match status.as_str() {
+            "ok" => {
+                return Ok(());
+            }
+            "err" => {
+                let name: String = self.get_must_provide("name").unwrap();
+                let context: String = self.get_must_provide("context").unwrap();
+                throw!(&name, &context);
+            }
+            _ => {
+                panic!("name or context is not properly provided.");
+            }
         }
     }
 }
