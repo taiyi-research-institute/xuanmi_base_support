@@ -39,13 +39,13 @@ impl Exception {
     }
 
     #[inline]
-    pub fn file(&mut self, file: &str) -> &mut Self {
+    pub fn set_file(&mut self, file: &str) -> &mut Self {
         self.file = file.to_string();
         self
     }
 
     #[inline]
-    pub fn name(&mut self, name: &str) -> &mut Self {
+    pub fn set_name(&mut self, name: &str) -> &mut Self {
         self.name = match name {
             "" => self::EXN::DummyException.to_string(),
             __ => name.to_string(),
@@ -54,27 +54,40 @@ impl Exception {
     }
 
     #[inline]
-    pub fn line(&mut self, line: u32) -> &mut Self {
+    pub fn set_line(&mut self, line: u32) -> &mut Self {
         self.line = line;
         self
     }
 
     #[inline]
-    pub fn column(&mut self, column: u32) -> &mut Self {
+    pub fn set_column(&mut self, column: u32) -> &mut Self {
         self.column = column;
         self
     }
 
     #[inline]
-    pub fn context(&mut self, ctx: &str) -> &mut Self {
+    pub fn set_context(&mut self, ctx: &str) -> &mut Self {
         self.context = Some(ctx.to_string());
         self
     }
 
     #[inline]
-    pub fn caused_by(&mut self, err: impl std::string::ToString + 'static) -> &mut Self {
+    pub fn set_caused_by(&mut self, err: impl std::string::ToString + 'static) -> &mut Self {
         self.inner = Some(Box::new(err));
         self
+    }
+
+    #[inline]
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    #[inline]
+    pub fn get_context(&self) -> Option<&str> {
+        match &self.context {
+            Some(ctx) => Some(ctx),
+            None => None,
+        }
     }
 }
 
@@ -141,12 +154,12 @@ where
                 let mut ex = Exception::new();
                 let loc = std::panic::Location::caller();
                 let (file, line, column) = (loc.file(), loc.line(), loc.column());
-                ex.name(name)
-                    .file(file)
-                    .line(line)
-                    .column(column)
-                    .context(ctx)
-                    .caused_by(e);
+                ex.set_name(name)
+                    .set_file(file)
+                    .set_line(line)
+                    .set_column(column)
+                    .set_context(ctx)
+                    .set_caused_by(e);
                 return Err(ex);
             }
         }
@@ -162,12 +175,12 @@ where
                 let mut ex = Exception::new();
                 let loc = std::panic::Location::caller();
                 let (file, line, column) = (loc.file(), loc.line(), loc.column());
-                ex.name("")
-                    .file(file)
-                    .line(line)
-                    .column(column)
-                    .context("")
-                    .caused_by(e);
+                ex.set_name("")
+                    .set_file(file)
+                    .set_line(line)
+                    .set_column(column)
+                    .set_context("")
+                    .set_caused_by(e);
                 return Err(ex);
             }
         }
@@ -193,11 +206,11 @@ macro_rules! throw {
     ($name:expr, $ctx:expr) => {{
         let mut ex = Exception::new();
         let loc = std::panic::Location::caller();
-        ex.name($name)
-            .file(loc.file())
-            .line(loc.line())
-            .column(loc.column())
-            .context($ctx);
+        ex.set_name($name)
+            .set_file(loc.file())
+            .set_line(loc.line())
+            .set_column(loc.column())
+            .set_context($ctx);
         return Err(ex);
     }};
 }
@@ -209,11 +222,11 @@ macro_rules! assert_throw {
             let mut ex = Exception::new();
             let loc = std::panic::Location::caller();
             let ctx = format!("Condition: {}\nExplanation: {}", stringify!($cond), $ctx);
-            ex.name($name)
-                .file(loc.file())
-                .line(loc.line())
-                .column(loc.column())
-                .context(&ctx);
+            ex.set_name($name)
+                .set_file(loc.file())
+                .set_line(loc.line())
+                .set_column(loc.column())
+                .set_context(&ctx);
             return Err(ex);
         }
     };
@@ -222,11 +235,11 @@ macro_rules! assert_throw {
             let mut ex = Exception::new();
             let loc = std::panic::Location::caller();
             let ctx = format!("Condition: {}\nExplanation: {}", stringify!($cond), $ctx);
-            ex.name("AssertionFailedException")
-                .file(loc.file())
-                .line(loc.line())
-                .column(loc.column())
-                .context(&ctx);
+            ex.set_name("AssertionFailedException")
+                .set_file(loc.file())
+                .set_line(loc.line())
+                .set_column(loc.column())
+                .set_context(&ctx);
             return Err(ex);
         }
     };
@@ -235,11 +248,11 @@ macro_rules! assert_throw {
             let mut ex = Exception::new();
             let loc = std::panic::Location::caller();
             let ctx = format!("Condition: {}", stringify!($cond));
-            ex.name("AssertionFailedException")
-                .file(loc.file())
-                .line(loc.line())
-                .column(loc.column())
-                .context(&ctx);
+            ex.set_name("AssertionFailedException")
+                .set_file(loc.file())
+                .set_line(loc.line())
+                .set_column(loc.column())
+                .set_context(&ctx);
             return Err(ex);
         }
     };
