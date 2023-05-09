@@ -236,3 +236,15 @@ impl JsonDictGet for JsonDict {
         }
     }
 }
+
+pub trait StringToJsonDict {
+    fn try_into_json_dict(&self) -> Outcome<JsonDict>;
+}
+
+impl<T: AsRef<str>> StringToJsonDict for T {
+    fn try_into_json_dict(&self) -> Outcome<JsonDict> {
+        let text = self.as_ref();
+        let jd: JsonDict = json_to_obj(text).catch_()?;
+        Ok(jd)
+    }
+}
