@@ -59,7 +59,7 @@ where
         for i in 0..self.len() {
             order.push(i);
         }
-        let mut stack: Vec<usize> = vec![0; self.len()];
+        let mut stack: Vec<usize> = vec![0; 256];
         let mut h: usize = 0;
         stack[0] = self.len() - 1;
         stack[1] = 0;
