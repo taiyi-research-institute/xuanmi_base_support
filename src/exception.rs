@@ -9,8 +9,11 @@ pub struct Exception {
     line: u32,
     column: u32,
     context: Option<String>,
-    inner: Option<Box<dyn std::string::ToString>>,
+    inner: Option<Box<dyn std::string::ToString + Send + Sync>>,
 }
+
+unsafe impl Send for Exception {}
+unsafe impl Sync for Exception {}
 
 /// Make every fail-able function return StdResult<T, Box<dyn StdError>>.
 pub type Outcome<T> = StdResult<T, Box<Exception>>;
@@ -72,7 +75,7 @@ impl Exception {
     }
 
     #[inline]
-    pub fn set_caused_by(&mut self, err: impl std::string::ToString + 'static) -> &mut Self {
+    pub fn set_caused_by(&mut self, err: impl std::string::ToString + Send + Sync + 'static) -> &mut Self {
         self.inner = Some(Box::new(err));
         self
     }
@@ -142,7 +145,7 @@ pub trait TraitStdResultToOutcome<T, E> {
 
 impl<T, E> TraitStdResultToOutcome<T, E> for StdResult<T, E>
 where
-    E: fmt::Display + 'static,
+    E: fmt::Display + Send + Sync + 'static,
 {
     #[track_caller]
     fn catch(self, name: &str, ctx: &str) -> Outcome<T> {
