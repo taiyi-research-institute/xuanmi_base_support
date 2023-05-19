@@ -1,6 +1,9 @@
 use crate::*;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde_json;
+pub use serde_json::Value as JsonValue;
 use std::{str, string::String, vec::Vec};
+pub type JsonDict = serde_json::Map<String, JsonValue>;
 
 // #region conversion between JSON and object
 /// Convert an object to json string.
@@ -168,10 +171,8 @@ pub trait JsonDictGet {
     fn get_with_default<V>(&self, field: &str, default: V) -> Outcome<V>
     where
         V: DeserializeOwned;
-    fn get_status(&self) -> Outcome<()>;
+    fn catch_(&self) -> Outcome<JsonValue>;
 }
-
-pub type JsonDict = serde_json::Map<String, serde_json::Value>;
 
 impl JsonDictGet for JsonDict {
     fn get_must_provide<V>(&self, field: &str) -> Outcome<V>
@@ -219,20 +220,51 @@ impl JsonDictGet for JsonDict {
         }
     }
 
-    fn get_status(&self) -> Outcome<()> {
-        let status: String = self.get_must_provide("status").unwrap();
-        match status.as_str() {
-            "ok" => {
-                return Ok(());
+    fn catch_(&self) -> Outcome<JsonValue> {
+        let status: String = self.get_must_provide("status")
+            .catch(
+                "DataFormatException", 
+                "If call `catch(...)` or `catch_()` on a JsonDict object, the `status` field must exist."
+            )?;
+        if status == "ok" {
+            let mut ret: JsonValue = JsonValue::Null;
+            let special_keys = ["__array", "__bool", "__string", "__number"];
+            let mut has_special_key = false;
+            for special_key in special_keys {
+                if self.contains_key(special_key) {
+                    if !has_special_key {
+                        has_special_key = true;
+                        ret = self.get(special_key).unwrap().clone();
+                    } else {
+                        throw!(
+                            "DataFormatException",
+                            &format!(
+                                r#"If call `catch(...)` or `catch_()` on a JsonDict object,
+                                the object should have at most 1 field within the following list:
+                                ["__array", "__bool", "__string", "__number"]."#
+                            )
+                        );
+                    }
+                }
             }
-            "err" => {
-                let name: String = self.get_must_provide("name").unwrap();
-                let context: String = self.get_must_provide("context").unwrap();
-                throw!(&name, &context);
+            // if self is a dictionary with 0 or more key-value pairs (except "status").
+            if !has_special_key {
+                let mut dict = self.clone();
+                dict.remove("status");
+                if dict.len() != 0 {
+                    ret = JsonValue::Object(dict);
+                }
             }
-            _ => {
-                panic!("name or context is not properly provided.");
-            }
+            return Ok(ret);
+        } else if status == "err" {
+            let trace: String = self.get_must_provide("trace").catch_()?;
+            return Err(trace).catch_()?;
+        } else {
+            throw!(
+                "DataFormatException",
+                r#"If call `catch(...)` or `catch_()` on a JsonDict object,
+                the `status` field must be either "ok" or "err"."#
+            );
         }
     }
 }
