@@ -94,8 +94,8 @@ impl Exception {
     }
 }
 
-/// 实现 std::fmt::Display 会自动地实现 std::string::ToString
-/// 从而为类型挂接 to_string 方法
+/// std::string::ToString has a default to_string() implementation 
+/// for any type satisfying std::fmt::Display, and the type needn't be Sized.
 impl fmt::Display for Exception {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut msg: String = format!("Exception \"{}\" occurs at \"{}", self.name, self.file);
