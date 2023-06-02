@@ -72,7 +72,7 @@ pub trait JsonDictGet {
     fn get_with_default<V>(&self, field: &str, default: V) -> Outcome<V>
     where
         V: DeserializeOwned;
-    fn catch_(&self) -> Outcome<JsonValue>;
+    fn jcatch_(&self) -> Outcome<JsonValue>;
 }
 
 impl JsonDictGet for JsonDict {
@@ -121,7 +121,7 @@ impl JsonDictGet for JsonDict {
         }
     }
 
-    fn catch_(&self) -> Outcome<JsonValue> {
+    fn jcatch_(&self) -> Outcome<JsonValue> {
         let status: String = self.get_must_provide("status")
             .catch(
                 "DataFormatException", 
