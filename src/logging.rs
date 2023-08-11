@@ -1,6 +1,6 @@
 pub use tracing;
 
-pub fn init_tracer(log_dir: &str, log_level: &str) {
+pub fn init_tracer(log_dir: &str, logfile_prefix: &str, log_level: &str) {
     let level = match log_level.to_lowercase().as_str() {
         "trace" => tracing::Level::TRACE,
         "debug" => tracing::Level::DEBUG,
@@ -9,7 +9,7 @@ pub fn init_tracer(log_dir: &str, log_level: &str) {
         "error" => tracing::Level::ERROR,
         _ => tracing::Level::INFO,
     };
-    let file_appender = tracing_appender::rolling::daily(log_dir, "lbclient.log");
+    let file_appender = tracing_appender::rolling::daily(log_dir, logfile_prefix);
     let (nbl, _guard) = tracing_appender::non_blocking(file_appender);
     let subscriber = tracing_subscriber::fmt::Subscriber::builder()
         .with_writer(nbl)

@@ -1,7 +1,5 @@
 # 介绍
 
-此库提供四类功能：异常处理、http post收发对象、格式转换、语法糖。
-
 在 `Cargo.toml` 里添加如下依赖项
 
 ```
@@ -82,55 +80,3 @@ fn div() -> Outcome<f64> {
 * `file` - 源码文件的路径。不传则为 `throw!` 被调用的文件路径。
 * `line` - 源码行号。不传或传0则为 `throw!` 被调用的行号。
 * `col`, `column` - 源码列号。不传或传0则为 `throw!` 被调用时，首字母左侧光标的偏移量。
-
-
-# http post收发对象
-
-此库提供了 `http_post` 函数。这个函数把一个Rust对象序列化成JSON，作为POST请求体，发送给一个URL；之后，这个函数把响应体当成JSON，反序列化成另一个Rust对象。注意：（1）这个函数每1000ms重试一次，一共重试3次，即最多请求4次；（2）服务端对 `content-type` 要么不过滤, 要么允许 `application/json` .
-
-例子：
-
-首先定义收发结构体。结构体需实现Clone, Serialize, Deserialize。
-
-```rust
-use serde::{Serialize, Deserialize};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct MyRequest {
-    uname: String,
-    email: String,
-}
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct MyResponse {
-    a: String,
-    b: String,
-}
-```
-
-定义好结构体就可以收发了。
-
-```rust
-#[macro_use] use xuanmi_base_support::*;
-
-fn test_http_post() -> Outcome<MyResponse> {
-    let req = MyRequest {
-        uname: "xuanmi".to_string(),
-        email: "luban@example.com".to_string(),
-    };
-    let url = "http://localhost:50000/test";
-    let resp: MyResponse = http_post(url, &req).catch(
-    	name=EXN::HttpPostException,
-    	ctx=&format!("Failed to post to {}", url)
-    )?;
-    // do something else ...
-    Ok(resp)
-}
-```
-
-# 格式转换
-
-To be continued...
-
-# 语法糖
-
-To be continued...
