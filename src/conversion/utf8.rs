@@ -1,4 +1,4 @@
-use crate::{Outcome, TraitStdResultToOutcome, TraitStdOptionToOutcome, EXN, PTRLEN};
+use crate::{Outcome, TraitStdOptionToOutcome, TraitStdResultToOutcome, EXN, PTRLEN};
 
 /// Convert a string to a fat-pointer of utf-8 bytes.
 pub fn str_to_u8p(text: &str) -> (*const u8, usize) {
@@ -19,7 +19,6 @@ pub fn u8p_to_bslice(u8p: *const u8, len: usize) -> &'static [u8] {
     let bytes: &[u8] = unsafe { std::slice::from_raw_parts(u8p, len) };
     return bytes;
 }
-
 
 /// Extract a string from a byte vector.
 /// Note that the byte vector may contain one or more strings.

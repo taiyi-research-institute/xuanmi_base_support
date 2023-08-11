@@ -35,3 +35,8 @@ features = [
     "fast-rng",          # Use a faster (but still sufficiently random) RNG
     "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
 ]
+
+[dependencies] # tracing
+tracing = "*"
+tracing-subscriber = "*"
+tracing-appender = "*"

@@ -6,6 +6,8 @@
 #[macro_use]
 mod lang;
 pub use lang::*;
+mod logging;
+pub use logging::*;
 mod conversion;
 pub use conversion::*;
 mod io;

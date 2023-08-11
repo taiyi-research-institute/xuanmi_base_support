@@ -75,7 +75,10 @@ impl Exception {
     }
 
     #[inline]
-    pub fn set_caused_by(&mut self, err: impl std::string::ToString + Send + Sync + 'static) -> &mut Self {
+    pub fn set_caused_by(
+        &mut self,
+        err: impl std::string::ToString + Send + Sync + 'static,
+    ) -> &mut Self {
         self.inner = Some(Box::new(err));
         self
     }
@@ -94,7 +97,7 @@ impl Exception {
     }
 }
 
-/// std::string::ToString has a default to_string() implementation 
+/// std::string::ToString has a default to_string() implementation
 /// for any type satisfying std::fmt::Display, and the type needn't be Sized.
 impl fmt::Display for Exception {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
