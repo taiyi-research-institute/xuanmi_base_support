@@ -6,8 +6,7 @@
 #[macro_use]
 mod lang;
 pub use lang::*;
-mod logging;
-pub use logging::*;
+pub mod logging;
 mod conversion;
 pub use conversion::*;
 mod io;
@@ -20,3 +19,7 @@ pub use exception_names as EXN;
 pub mod idgen;
 mod qsort;
 pub use qsort::*;
+
+pub use tracing;
+pub use tracing_appender;
+pub use tracing_subscriber;
