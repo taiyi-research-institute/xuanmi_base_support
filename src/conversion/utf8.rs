@@ -27,7 +27,7 @@ pub fn str_from_partof_vecu8(buf: &Vec<u8>, beg: &mut usize, end: &mut usize) ->
     *beg = end.clone();
     *end += PTRLEN;
     let mut len: usize = 0;
-    let item = buf.get(*beg..*end).if_none(
+    let item = buf.get(*beg..*end).ifnone(
         EXN::IndexOutOfBoundException,
         &format!(
             "When reading the length, index {:?} out of bound for bufsize {}",
@@ -41,7 +41,7 @@ pub fn str_from_partof_vecu8(buf: &Vec<u8>, beg: &mut usize, end: &mut usize) ->
     )?);
     *beg = *end;
     *end += len;
-    let item = buf.get(*beg..*end).if_none(
+    let item = buf.get(*beg..*end).ifnone(
         EXN::IndexOutOfBoundException,
         &format!(
             "When reading the bytes, index {:?} out of bound for bufsize {}",
@@ -62,7 +62,7 @@ pub fn bslice_into_partof_vecu8(
     *beg = end.clone();
     *end += PTRLEN;
     let buflen = buf.len();
-    let item = buf.get_mut(*beg..*end).if_none(
+    let item = buf.get_mut(*beg..*end).ifnone(
         EXN::IndexOutOfBoundException,
         &format!(
             "When writing the length, index {:?} out of bound for bufsize {}",
@@ -73,7 +73,7 @@ pub fn bslice_into_partof_vecu8(
     item.copy_from_slice(&bslice.len().to_be_bytes());
     *beg = end.clone();
     *end += bslice.len();
-    let item = buf.get_mut(*beg..*end).if_none(
+    let item = buf.get_mut(*beg..*end).ifnone(
         EXN::IndexOutOfBoundException,
         &format!(
             "When writing the bytes, index {:?} out of bound for bufsize {}",

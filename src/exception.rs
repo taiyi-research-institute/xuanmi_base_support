@@ -198,11 +198,11 @@ macro_rules! exception {
     ($name:expr, $ctx:expr) => {{
         let mut ex = Exception::new();
         let loc = std::panic::Location::caller();
-        ex.name($name)
-            .file(loc.file())
-            .line(loc.line())
-            .column(loc.column())
-            .context($ctx);
+        ex.set_name($name)
+            .set_file(loc.file())
+            .set_line(loc.line())
+            .set_column(loc.column())
+            .set_context($ctx);
         ex
     }};
 }
@@ -265,15 +265,24 @@ macro_rules! assert_throw {
 }
 
 pub trait TraitStdOptionToOutcome<T> {
-    fn if_none(self, name: &str, ctx: &str) -> Outcome<T>;
+    fn ifnone(self, name: &str, ctx: &str) -> Outcome<T>;
+    fn ifnone_(self) -> Outcome<T>;
 }
 
 impl<T> TraitStdOptionToOutcome<T> for std::option::Option<T> {
     #[track_caller]
-    fn if_none(self, name: &str, ctx: &str) -> Outcome<T> {
+    fn ifnone(self, name: &str, ctx: &str) -> Outcome<T> {
         match self {
             Some(t) => Ok(t),
             None => throw!(name, ctx),
+        }
+    }
+
+    #[track_caller]
+    fn ifnone_(self) -> Outcome<T> {
+        match self {
+            Some(t) => Ok(t),
+            None => throw!("", ""),
         }
     }
 }
@@ -322,7 +331,7 @@ mod tests {
     #[test]
     fn test_option() {
         let x: Option<i32> = None;
-        let x_out = x.if_none("IntendedException", "x has no value");
+        let x_out = x.ifnone("IntendedException", "x has no value");
         println!("{:#?}", x_out);
     }
 
