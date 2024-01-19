@@ -1,82 +1,62 @@
-# 介绍
+我推荐使用本项目中的 `exception.rs`. 其已被高频地使用一年, 与其他模块相比, 经受了最多的考验. 每当程序出bug时, `exception.rs`能帮我快速地找到报错位置和原因, 比`panic/unwrap/expect/assert`好用很多!
 
-在 `Cargo.toml` 里添加如下依赖项
+如果复制或改进其源码, 请注明出处.
 
-```
-[dependencies.xuanmi_base_support]
-git = "https://github.com/taiyi-research-institute/xuanmi_base_support"
-branch = "main"
-```
+## `exception.rs` 最佳实践
 
-如果你在中国大陆，`git` 链接可以改成
-
-```
-ssh://git@github.com/taiyi-research-institute/xuanmi_base_support
-```
-
-如果你需要运行单元测试，推荐使用如下命令。
-
-```
-cargo test -- --show-output
-```
-
-# 异常处理
-
-当你使用此库提供的异常处理机制时，笔者推荐你养成如下几个习惯。按照这样的习惯来处理异常，你将得到类似于Java Exception的报错信息。
-
-1. 如果你自己写的函数有可能执行失败，那么这个函数的返回类型应该指定为 `Outcome<T>` 。
-2. 如果你调用别人的函数，且该函数有可能失败，那么你要在函数调用的后面跟 `.catch(name, context)?` 。
-   这是用来取代`.unwrap()` 或 `.expect()` 的。
-3. 把你写过的 `panic!(...);` 替换成 `throw!(...);` 。类似地，把你写过的 `assert!(cond, ...);` 替换成 `if cond { throw!(...); }` 。
-4. 给Exception起名时，建议传符号，不建议传字符串字面量。
-
-例1：调用别人的函数，该函数有可能失败。**要点：Outcome, catch**
+首先, 在你自己的`lib.rs`或`main.rs`里, 将`exception.rs`中的所有符号重新导出 (re-export) 为`crate::exception::*`. 必须如此, 两个宏才能被编译. 重新导出的方式有很多, 参考:
 
 ```rust
-#[macro_use] use xuanmi_base_support::*; 
-use serde_json;
-
-pub fn objectToJson<T>(
-    obj: &T
-) -> Outcome<String> where T: Serialize {
-    let json: String = serde_json::to_string(obj)
-    .catch( // 取代unwrap
-        // EXN是模块名. 我在模块EXN里定义了许多Exception名称
-        EXN::SerializationException, 
-        // 上下文信息
-        &format!("Failed to convert object of type `{}` to JSON string", std::any::type_name::<T>()),
-    )?;
-    Ok(json)
+/* In lib.rs or main.rs */
+/* pub */ mod exception {
+   pub use xuanmi_base_support::{self,
+      Exception, Outcome,
+      TraitStdResultToOutcome, TraitStdOptionToOutcome
+   };
+   pub use xuami_base_support::{throw, assert_throw};
 }
 ```
 
-例2：你写一个可能失败的函数。**要点：Outcome, catch**
+然后, 在实现任何 **可能失败的函数 (fallable function)** 时, 参考以下代码片:
 
 ```rust
-#[macro_use] use xuanmi_base_support::*; 
+use crate::exception::*;
 
-fn div() -> Outcome<f64> {
-    let (a, b): (f64, f64) = (1.0, 0.0);
-    let eps: f64 = 1.0 / 4096.0;
-    if b.abs() < eps {
-        throw!( // 取代panic或assert
-            name=EXN::ArithmeticException,
-            ctx=&format!("Cannot divide a={:.4} by b={:.4}", a, b)
-        );
-    } else {
-        return Ok(a/b);
-    }
+/* async */ fn foo_may_fail(/* params */) -> Outcome</* ret-type */> {
+   let a = foo_a_may_fail(params).catch(
+      "title",
+      &format!("detaied context. {}", blabla)
+   )?; // 别忘了问号.
+
+   // 如果你确信 `foo_b_may_fail` 内部写了详细的错误信息, 那就不必再写一遍.
+   let b = foo_b_may_fail(params).catch_()?;
+
+   let c = get_c(params).ifnone(
+      "title",
+      &format!("detaied context. {}", blabla)
+   )?;
+   let d = get_d(params).ifnone_()?;
+
+   // 建议用 assert_throw! 取代 assert!, assert_eq!
+   assert_throw!(a > b);
+   assert_throw!(c > d, "&str类型的错误细节");
+   assert_throw!(
+      a+b == c*d,
+      "&str类型的错误标题",
+      "&str类型的错误细节"
+   );
+
+   Ok((a, b, c, d))
 }
 ```
 
-关于宏 `throw!` ，你只能给它传零对到若干对键值参数。通过传递这些参数，你可以定制报错信息。支持的参数有
 
-* `name` - 错误的名称。笔者喜欢仿照Java Exception的名称。你也可以用错误代码。
-* `ctx`, `context` - 详细的报错信息。通常需要配合Rust语言提供的 `format!` 宏。
-* `src`, `cause` - 错误对象，可以是任何实现了 `std::error::Error` 的对象。用于给已有的错误对象（比如 `match` 里的 `Err(e)` 里的 `e`）再套一层。
+## `exception.rs` 原理简述
 
-> 除非你清楚此库异常处理的原理，否则不建议设定以下参数。
-
-* `file` - 源码文件的路径。不传则为 `throw!` 被调用的文件路径。
-* `line` - 源码行号。不传或传0则为 `throw!` 被调用的行号。
-* `col`, `column` - 源码列号。不传或传0则为 `throw!` 被调用时，首字母左侧光标的偏移量。
+* `struct Exception`
+   * 实现了`trait fmt::Display`, 使得程序遭遇异常时, 能够打印出类似于Java/Python那样的错误栈.
+   * 具有一个`inner`字段, 用于维护错误栈.
+* `type Outcome`, 是`std::Result<T, Box<Exception>>`的别名. 起名为`Outcome`是为了避免和`Result`撞名.
+* `trait TraitStdResultToOutcome`, 给`Result<T, E>`挂接了`catch(self, name, ctx)`和`catch_(self)`两个函数. 调用任何一个函数, 会构造一个`Outcome`对象, 对象的`T`分支直接移动`self`的`T`分支, 对象的`E`分支把`inner`字段设定为`self`, 并设定名称、上下文、行号等字段.
+* 类似地, `trait TraitStdOptionToOutcome`, 给`Option<T>`挂接了`ifnone(self, name, ctx)`和`ifnone_()`两个函数.
+* 宏`throw!(name, ctx)`, 以及宏`assert_throw!(bool_expr, [[name], ctx])`, 构造一个没有内部错误的`Exception`对象, 并使宏的调用者返回该错误对象.
