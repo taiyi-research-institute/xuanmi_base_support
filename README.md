@@ -7,7 +7,7 @@
 首先, 在你自己的`lib.rs`或`main.rs`里, 将`exception.rs`中的所有符号重新导出 (re-export) 为`crate::exception::*`. 必须如此, 两个宏才能被编译. 重新导出的方式有很多, 参考:
 
 ```rust
-/* In lib.rs or main.rs */
+/* 在 lib.rs 或 main.rs 里*/
 /* pub */ mod exception {
    pub use xuanmi_base_support::{self,
       Exception, Outcome,
@@ -15,6 +15,13 @@
    };
    pub use xuami_base_support::{throw, assert_throw};
 }
+```
+
+或者, 你只想使用`exception.rs`, 那就把它放进自己的源码仓库, 参考:
+
+```
+/* 在 lib.rs 或 main.rs 里*/
+mod exception; use exception::{self, *};
 ```
 
 然后, 在实现任何 **可能失败的函数 (fallable function)** 时, 参考以下代码片:
