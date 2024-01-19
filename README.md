@@ -23,19 +23,19 @@
 use crate::exception::*;
 
 /* async */ fn foo_may_fail(/* params */) -> Outcome</* ret-type */> {
-   let a = foo_a_may_fail(params).catch(
-      "title",
-      &format!("detaied context. {}", blabla)
+   let a = foo_a_may_fail(params)/*.await*/.catch(
+      "错误标题",
+      &format!("错误原因. 有助于诊断的变量的值: {}", blabla)
    )?; // 别忘了问号.
 
    // 如果你确信 `foo_b_may_fail` 内部写了详细的错误信息, 那就不必再写一遍.
-   let b = foo_b_may_fail(params).catch_()?;
+   let b = foo_b_may_fail(params)/*.await*/.catch_()?;
 
-   let c = get_c(params).ifnone(
-      "title",
-      &format!("detaied context. {}", blabla)
+   let c = get_c(params)/*.await*/.ifnone(
+      "错误标题",
+      &format!("错误原因. 有助于诊断的变量的值: {}", blabla)
    )?;
-   let d = get_d(params).ifnone_()?;
+   let d = get_d(params)/*.await*/.ifnone_()?;
 
    // 建议用 assert_throw! 取代 assert!, assert_eq!
    assert_throw!(a > b);
