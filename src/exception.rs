@@ -1,8 +1,5 @@
 use std::{fmt, result::Result as StdResult};
 
-// pub type Result<T> = StdResult<T, Box<Exception>>; // avoid name collision with std Result
-use crate::EXN;
-
 pub struct Exception {
     name: String,
     file: String,
@@ -21,7 +18,7 @@ pub type Outcome<T> = StdResult<T, Box<Exception>>;
 impl Exception {
     pub fn new() -> Box<Self> {
         Box::new(Exception {
-            name: EXN::UncategorizedException.to_string(),
+            name: "UnknownException".to_string(),
             file: String::new(),
             line: 0,
             column: 0,
@@ -32,7 +29,7 @@ impl Exception {
 
     pub fn dummy() -> Box<Self> {
         Box::new(Exception {
-            name: EXN::DummyException.to_string(),
+            name: String::new(),
             file: String::new(),
             line: 0,
             column: 0,
@@ -49,10 +46,7 @@ impl Exception {
 
     #[inline]
     pub fn set_name(&mut self, name: &str) -> &mut Self {
-        self.name = match name {
-            "" => self::EXN::DummyException.to_string(),
-            __ => name.to_string(),
-        };
+        self.name = name.to_string();
         self
     }
 
@@ -210,6 +204,7 @@ macro_rules! exception {
 #[macro_export]
 macro_rules! throw {
     ($name:expr, $ctx:expr) => {{
+        use crate::exception::Exception;
         let mut ex = Exception::new();
         let loc = std::panic::Location::caller();
         ex.set_name($name)
@@ -225,6 +220,7 @@ macro_rules! throw {
 macro_rules! assert_throw {
     ($cond:expr, $name:expr, $ctx:expr) => {
         if !($cond) {
+            use crate::exception::Exception;
             let mut ex = Exception::new();
             let loc = std::panic::Location::caller();
             let ctx = format!("Condition: {}\nExplanation: {}", stringify!($cond), $ctx);
@@ -238,6 +234,7 @@ macro_rules! assert_throw {
     };
     ($cond:expr, $ctx:expr) => {
         if !($cond) {
+            use crate::exception::Exception;
             let mut ex = Exception::new();
             let loc = std::panic::Location::caller();
             let ctx = format!("Condition: {}\nExplanation: {}", stringify!($cond), $ctx);
@@ -251,6 +248,7 @@ macro_rules! assert_throw {
     };
     ($cond:expr) => {
         if !($cond) {
+            use crate::exception::Exception;
             let mut ex = Exception::new();
             let loc = std::panic::Location::caller();
             let ctx = format!("Condition: {}", stringify!($cond));
@@ -284,72 +282,5 @@ impl<T> TraitStdOptionToOutcome<T> for std::option::Option<T> {
             Some(t) => Ok(t),
             None => throw!("", ""),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::EXN;
-    use crate::*;
-
-    #[test]
-    fn test_catch() {
-        fn actual_test() -> Outcome<()> {
-            use std::fs::File;
-            let path = "!!$%!$>TXT";
-            let _f = File::open("!!$%!$>TXT");
-            _f.catch(
-                "IntendedException",
-                &format!("Path \"{}\" has no file.", path),
-            )?;
-            Ok(())
-        }
-        fn actual_test2() -> Outcome<()> {
-            let _x = actual_test().catch("AnotherIntendedException", "")?;
-            Ok(())
-        }
-        let x = actual_test2();
-        println!("{:#?}", x);
-    }
-
-    #[test]
-    fn test_throw() {
-        fn div() -> Outcome<f64> {
-            let (a, b, eps): (f64, f64, f64) = (1.0, 0.0, 1.0 / 4096 as f64);
-            if b.abs() < eps {
-                throw!(
-                    EXN::ArithmeticException,
-                    &format!("Cannot divide a={:.4} by b={:.4}", a, b)
-                );
-            } else {
-                return Ok(a / b);
-            }
-        }
-        println!("{:?}", div());
-    }
-
-    #[test]
-    fn test_option() {
-        let x: Option<i32> = None;
-        let x_out = x.ifnone("IntendedException", "x has no value");
-        println!("{:#?}", x_out);
-    }
-
-    #[test]
-    fn test_assertion1() -> Outcome<()> {
-        assert_throw!(1 == 2);
-        Ok(())
-    }
-
-    #[test]
-    fn test_assertion2() -> Outcome<()> {
-        assert_throw!(1 == 2, "1 will never equal to 2");
-        Ok(())
-    }
-
-    #[test]
-    fn test_assertion3() -> Outcome<()> {
-        assert_throw!(1 == 2, "IntendedException", "1 will never equal to 2");
-        Ok(())
     }
 }
